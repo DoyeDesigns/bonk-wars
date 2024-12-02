@@ -1,6 +1,5 @@
 import React from 'react'
 import Image from 'next/image'
-import NavBar from '@/components/NavBar'
 
 export default function Profile() {
   return (
@@ -136,7 +135,6 @@ export default function Profile() {
             </div>
         </div>
         </div>
-        {/* <NavBar /> */}
     </main>
   )
 }

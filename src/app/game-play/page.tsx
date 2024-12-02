@@ -1,8 +1,8 @@
 import React from 'react'
 import PlayerHealth, { OpponentPlayerHealth } from './features/PlayerHealth'
 import Image from 'next/image'
-import WonMessage from './features/WonMessage'
-import LostMessage from './features/LostMessage'
+// import WonMessage from './features/WonMessage'
+// import LostMessage from './features/LostMessage'
 
 type ability = {
     name: string,

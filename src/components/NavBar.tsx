@@ -5,27 +5,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-const NavLinks = [
-    {
-        name: 'Profile',
-        icon: '/profile.png',
-        link: '/profile',
-        activeIcon: '/profile-active.png'
-    },
-    {
-        name: 'Play',
-        icon: '/history-won-img.png',
-        link: '/play',
-        activeIcon: '/play-active.png'
-    },
-    {
-        name: 'Wallet',
-        icon: '/wallet.png',
-        link: '/wallet',
-        activeIcon: '/wallet-active.png'
-    }
-]
-
 export default function NavBar() {
     const path = usePathname();
     
