@@ -2,20 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+* {
+  padding: 0px;
+  margin: 0px;
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+
+.progress-primary::-moz-progress-bar {
+  @apply bg-gradient-to-r from-primary to-secondary;
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+.progress-primary:indeterminate {
+  @apply bg-primary border; 
+}
+
+.progress-primary::-webkit-progress-value {
+  @apply bg-primary border;
+}
+
+/* Reverse Progress Bar */
+.progress-reverse {
+  transform: scaleX(-1); /* Flip the progress bar */
+}
+
+.progress-reverse::-webkit-progress-value {
+  transform: scaleX(-1); /* Flip the progress value */
+}
+
+.progress-reverse::-moz-progress-bar {
+  transform: scaleX(-1); /* Flip the progress value */
 }
