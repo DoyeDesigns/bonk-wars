@@ -1,7 +1,11 @@
+'use client'
+
 import React from 'react'
 import Image from 'next/image'
+import { useUser } from '@/contexts/TelegramContext'
 
 export default function Profile() {
+    const { user } = useUser();
   return (
     <main className='h-full overflow-auto bg-background flex flex-col justify-between'>
         <div>
@@ -16,7 +20,7 @@ export default function Profile() {
 
             <div className='text-white'>
                 <span className='block text-xl font-bold'>Jandounchaind</span>
-                <span className='inline-flex items-center text-[15px] font-normal uppercase mt-2 mb-[14px]'>ID: 0A45R1AO <button className='mt-px ml-2'><Image src='/copy.png' alt='copy' width={20} height={20} /></button></span>
+                <span className='inline-flex items-center text-[15px] font-normal uppercase mt-2 mb-[14px]'>{user ? user?.id : "ID: 0A45R1AO"}  <button className='mt-px ml-2'><Image src='/copy.png' alt='copy' width={20} height={20} /></button></span>
                 <button className='btn flex justify-center items-center bg-accent h-10 w-[201px] text-white font-bold'><Image src='/wallet.png' alt='wallet' width={20} height={20}/> Connect Wallet</button>
             </div>
         </div>
