@@ -17,10 +17,12 @@
     "@solana/wallet-adapter-react-ui": "^0.9.35",
     "@solana/wallet-adapter-wallets": "^0.19.32",
     "@solana/web3.js": "^1.95.5",
+    "firebase": "^11.0.2",
     "next": "15.0.3",
-    "react": "19.0.0-rc-66855b96-20241106",
-    "react-dom": "19.0.0-rc-66855b96-20241106",
-    "tailwindcss-animate": "^1.0.7"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwindcss-animate": "^1.0.7",
+    "zustand": "^5.0.1"
   },
   "devDependencies": {
     "@types/node": "^20",
