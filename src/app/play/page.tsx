@@ -14,7 +14,7 @@ export default function Play() {
             <div className='flex flex-col items-center mx-4 gap-4'>
                 <Link href='/game-play' className='btn h-12 bg-primary w-full text-white'>Search User Game ID</Link>
                 <Link href='/create-game' className='btn h-12 bg-secondary w-full text-black'>Create Game</Link>
-                {/* <Link href='/test' className='btn h-12 bg-secondary w-full text-black'>test local</Link> */}
+                <Link href='/test' className='btn h-12 bg-secondary w-full text-black'>test local</Link>
                 <Link href='/online-test' className='btn h-12 bg-secondary w-full text-black'>test online</Link>
             </div>
         </div>

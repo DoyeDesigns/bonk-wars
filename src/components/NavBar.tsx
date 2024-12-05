@@ -8,7 +8,7 @@ import { usePathname } from 'next/navigation'
 export default function NavBar() {
     const path = usePathname();
     
-    if (path === '/game-play') return;
+    if (path === '/game-play' || path ==='/') return;
 
   return (
     <div className='flex items-baseline justify-center gap-[60px] h-[103px] bg-[#171717] absolute bottom-0 z-20 w-full'>
