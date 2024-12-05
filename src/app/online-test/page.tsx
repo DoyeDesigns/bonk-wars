@@ -15,7 +15,7 @@ const GameComponent: React.FC = () => {
     selectCharacters,
     determineFirstPlayer,
     performAttack,
-    useDefense,
+    // useDefense,
     // addDefenseToInventory,
     // skipDefense,
     rollDice
