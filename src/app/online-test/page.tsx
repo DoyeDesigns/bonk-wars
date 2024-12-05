@@ -1,14 +1,14 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import useOnlineGameStore from '@/store/online-game-store';
 import { Ability, CHARACTERS } from '@/lib/characters';
 
 const GameComponent: React.FC = () => {
   const {
     gameState,
-    roomId,
-    playerTelegramId,
+    // roomId,
+    // playerTelegramId,
     createOnlineGameRoom,
     joinGameRoom,
     findOpenGameRoom,
@@ -16,13 +16,13 @@ const GameComponent: React.FC = () => {
     determineFirstPlayer,
     performAttack,
     useDefense,
-    addDefenseToInventory,
-    skipDefense,
+    // addDefenseToInventory,
+    // skipDefense,
     rollDice
   } = useOnlineGameStore();
 
   const [localRoomId, setLocalRoomId] = useState<string | null>(null);
-  const [selectedCharacter, setSelectedCharacter] = useState<string | null>(null);
+  const [player1CharacterId, setPlayer1CharacterId] = useState<string | null>(null)
 
   const handleCreateRoom = async () => {
     try {
@@ -49,10 +49,32 @@ const GameComponent: React.FC = () => {
     }
   };
 
-  const handleCharacterSelect = (characterId: string) => {
-    setSelectedCharacter(characterId);
-    selectCharacters(characterId, 'opponent-character-id'); // Replace with actual logic
-  };
+  const handleCharacterSelect = useCallback((characterId: string) => {
+    // Check if a room exists
+    if (!localRoomId) {
+      alert('Please create or join a room first');
+      return;
+    }
+  
+    // Prevent selecting the same character twice
+    if (gameState.player1?.character?.id === characterId || 
+        gameState.player2?.character?.id === characterId) {
+      alert('This character has already been selected');
+      return;
+    }
+  
+    // Determine which player is selecting the character
+    if (!player1CharacterId) {
+      // First player selects their character
+      setPlayer1CharacterId(characterId);
+    } else if (player1CharacterId !== characterId) {
+      // Second player selects their character
+      // Only call selectCharacters when both character IDs are different
+      selectCharacters(player1CharacterId, characterId);
+    } else {
+      alert('Please select a different character for the second player');
+    }
+  }, [localRoomId, player1CharacterId, gameState, selectCharacters]);
 
   const handleStartGame = () => {
     const player1Roll = rollDice();
@@ -64,16 +86,17 @@ const GameComponent: React.FC = () => {
     performAttack(gameState.currentTurn, ability);
   };
 
-  const handleDefense = (defenseAbility: Ability) => {
+  const handleDefense = useCallback((defenseAbility: Ability) => {
     const lastAttack = gameState.lastAttack;
     if (lastAttack) {
-      useDefense(
+      // Directly use useDefense from the store
+      useOnlineGameStore.getState().useDefense(
         gameState.currentTurn === 'player1' ? 'player2' : 'player1', 
         defenseAbility, 
         lastAttack.ability.value
       );
     }
-  };
+  }, [gameState]);
 
   return (
     <div className="bg-gradient-to-r from-pink-200 via-yellow-200 to-teal-200 h-full overflow-auto p-8 font-sans pb-[500px]">
@@ -100,20 +123,33 @@ const GameComponent: React.FC = () => {
       </div>
 
       {/* Character Selection */}
-      <div className="bg-white p-6 rounded-xl shadow-lg mb-6">
-        <h2 className="text-2xl font-semibold text-teal-700 mb-4">Select Your Character</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {CHARACTERS.map(character => (
-            <button 
-              key={character.id}
-              onClick={() => handleCharacterSelect(character.id)}
-              className={`text-xl font-medium py-2 px-4 rounded-md shadow-md transition transform hover:scale-105 ${selectedCharacter === character.id ? 'bg-teal-400 text-white' : 'bg-pink-200 text-teal-700 hover:bg-teal-300'}`}
-            >
-              {character.name}
-            </button>
-          ))}
-        </div>
-      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+  {CHARACTERS.map(character => (
+    <button 
+      key={character.id}
+      onClick={() => handleCharacterSelect(character.id)}
+      disabled={
+        gameState.player1?.character?.id === character.id || 
+        gameState.player2?.character?.id === character.id ||
+        (player1CharacterId === character.id) 
+        ? true 
+        : undefined
+      }
+      className={`
+        text-xl font-medium py-2 px-4 rounded-md shadow-md transition transform hover:scale-105
+        ${
+          gameState.player1?.character?.id === character.id || 
+          gameState.player2?.character?.id === character.id ||
+          (player1CharacterId && player1CharacterId === character.id)
+          ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+          : 'bg-pink-200 text-teal-700 hover:bg-teal-300'
+        }
+      `}
+    >
+      {character.name}
+    </button>
+  ))}
+</div>
 
       {/* Game State Display */}
       <div className="bg-white p-6 rounded-xl shadow-lg mb-6">
