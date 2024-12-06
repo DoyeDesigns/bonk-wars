@@ -106,14 +106,18 @@ const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
   roomId: null,
   setRoomId: (id: string) => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    //   const telegramUser = {
+    //   id: 5532711018,
+    //   username: 'doye',
+    // };
     if (!telegramUser) return;
-    set((state) => ({
-      gameState: {
-        ...state.gameState,
-        roomId: id,
-        playerTelegramId: telegramUser?.id
-      },
-    }))
+
+    console.log('setting room id');
+
+    set({ 
+      roomId: id, 
+      playerTelegramId: telegramUser.id 
+    });
   },
   playerTelegramId: null,
   gameState: {

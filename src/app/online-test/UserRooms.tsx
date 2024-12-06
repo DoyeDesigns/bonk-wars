@@ -9,9 +9,8 @@ const JoinedRooms: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
 
   const handleJoinRoom = (roomId: string) => {
-    // Update the store with the selected roomId
     setRoomId(roomId);
-    console.log(roomId);
+    // console.log(roomId);
   };
 
   // Function to fetch joined rooms
