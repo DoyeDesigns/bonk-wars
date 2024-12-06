@@ -50,7 +50,7 @@ const GameComponent: React.FC = () => {
   const handleCharacterSelect = useCallback(
     async (characterId: string) => {
       // Ensure a room exists
-      if (!roomId || selectedCharacterId) {
+      if (!roomId || !selectedCharacterId) {
         alert('Please create or join a room first');
         return;
       }
@@ -161,6 +161,8 @@ const GameComponent: React.FC = () => {
           <p className="text-teal-700">Character: {gameState?.player2?.character?.name}</p>
           <p className="text-teal-700">Health: {gameState?.player2?.currentHealth}</p>
         </div>
+
+        <button onClick={() => init()} className="bg-teal-500 text-white py-2 px-4 rounded-md disabled:bg-gray-300 disabled:text-gray-500">Initialize game state</button>
       </div>
 
       {/* Game Controls */}

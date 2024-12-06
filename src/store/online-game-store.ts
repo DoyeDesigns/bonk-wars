@@ -523,8 +523,9 @@ checkDiceRollsAndSetTurn: async () => {
 
   init: () => {
     const { roomId } = get(); //playerTelegramId
-    const playerTelegramId = 5532711018;
-    if (!roomId || !playerTelegramId) {
+    // const playerTelegramId = 5532711018;
+    const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    if (!roomId || !telegramUser?.id) {
       console.error("Room ID or Player Telegram ID is missing.");
       return () => {}; // Return an empty unsubscribe function
     }
