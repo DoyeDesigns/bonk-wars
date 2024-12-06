@@ -1,12 +1,15 @@
 import useOnlineGameStore from "@/store/online-game-store";
-import React from "react";
+import React, { useState } from "react";
 
 const DiceRollToDetermineFirstTurn = () => {
-    const { rollAndRecordDice, checkDiceRollsAndSetTurn } = useOnlineGameStore();
+    const { checkDiceRollsAndSetTurn, rollAndRecordDice } = useOnlineGameStore();
+
+    const [rollNumber, setRollNumber] = useState(0);
   
     const handleRollDice = async () => {
       try {
-        await rollAndRecordDice();
+        const rolledDiceNumber = await rollAndRecordDice();
+        setRollNumber(rolledDiceNumber);
         checkDiceRollsAndSetTurn();
       } catch (error) {
         console.error('Error rolling dice:', error);
@@ -14,8 +17,9 @@ const DiceRollToDetermineFirstTurn = () => {
     };
   
     return (
-      <div>
-        <button onClick={handleRollDice}>Roll Dice to determine first player</button>
+      <div className="flex items-center gap-5">
+        <button className="bg-teal-500 text-white py-2 px-4 rounded-md disabled:bg-gray-300 disabled:text-gray-500" onClick={handleRollDice}>Roll Dice to determine first player</button>
+        <p>{rollNumber}</p>
       </div>
     );
   };
