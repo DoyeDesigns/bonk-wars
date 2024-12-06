@@ -8,7 +8,8 @@ import {
   serverTimestamp,
   query,
   where,
-  getDocs
+  getDocs,
+  getDoc
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { CHARACTERS, Character, Ability } from '@/lib/characters';
@@ -20,10 +21,11 @@ interface GameRoomPlayer {
   username?: string;
   characterId: string | null;
   role: 'creator' | 'challenger';
+  diceRoll?: number
 }
 
 // Define the structure of the game room document
-interface GameRoomDocument {
+export interface GameRoomDocument {
   id: string;
   createdBy: number;
   status: 'waiting' | 'character-select' | 'inProgress' | 'finished';
@@ -64,15 +66,20 @@ interface GameState {
     ability: Ability;
     attackingPlayer: 'player1' | 'player2';
   };
+  diceRolls?: {
+    [key: string]: number;
+  };
 }
 
 // Online Game Store interface
 interface OnlineGameStore {
   roomId: string | null;
+  setRoomId: (roomId: string) => void;
   playerTelegramId: number | null;
   gameState: GameState;
-  rollDice: () => number;
-  selectCharacters: (player1CharId: string, player2CharId: string) => void;
+  rollAndRecordDice: () => Promise<number>;
+  checkDiceRollsAndSetTurn: () => void;
+  selectCharacters: (roomId: string, characterId: string) => void;
   determineFirstPlayer: (player1Roll: number, player2Roll: number) => void;
   performAttack: (attackingPlayer: 'player1' | 'player2', ability: Ability) => void;
   useDefense: (
@@ -88,14 +95,16 @@ interface OnlineGameStore {
   ) => void;
   createOnlineGameRoom: () => Promise<string>;
   joinGameRoom: (roomId: string) => Promise<void>;
-  findOpenGameRoom: () => Promise<string | null>;
+  findUserRooms: () => Promise<GameRoomDocument[] | null>;
+  findOpenGameRoom: () => Promise<GameRoomDocument[] | null>;
   leaveGameRoom: () => Promise<void>;
-  init: () => void;
+  init: () => () => void;
 }
 
 
 const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
   roomId: null,
+  setRoomId: (id: string) => set({ roomId: id }),
   playerTelegramId: null,
   gameState: {
     player1: {
@@ -112,31 +121,98 @@ const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
     gameStatus: 'character-select',
   },
 
-  rollDice: () => Math.floor(Math.random() * 6) + 1,
+  // In the store, add a method to roll and record dice rolls
+rollAndRecordDice: async () => {
+  const { roomId, playerTelegramId } = get();
+  if (!roomId || !playerTelegramId) {
+    throw new Error('No active game room');
+  }
 
-  selectCharacters: (player1CharId, player2CharId) => {
-    const player1Character = CHARACTERS.find((char) => char.id === player1CharId);
-    const player2Character = CHARACTERS.find((char) => char.id === player2CharId);
+  const diceRoll = Math.floor(Math.random() * 6) + 1;
+  const roomRef = doc(db, 'gameRooms', roomId);
 
-    if (player1Character && player2Character) {
-      set((state) => ({
-        gameState: {
-          ...state.gameState,
-          player1: {
-            character: player1Character,
-            currentHealth: player1Character.baseHealth,
-            defenseInventory: {},
-          },
-          player2: {
-            character: player2Character,
-            currentHealth: player2Character.baseHealth,
-            defenseInventory: {},
-          },
-          gameStatus: 'waiting',
-        },
-      }));
+  await updateDoc(roomRef, {
+    [`players.${playerTelegramId}.diceRoll`]: diceRoll,
+    [`gameState.diceRolls.${playerTelegramId}`]: diceRoll
+  });
+
+  return diceRoll;
+},
+
+// Method to check if both players have rolled and determine first turn
+checkDiceRollsAndSetTurn: async () => {
+  const { roomId } = get();
+  if (!roomId) return;
+  const roomRef = doc(db, 'gameRooms', roomId);
+  const roomSnapshot = await getDoc(roomRef);
+  const roomData = roomSnapshot.data() as GameRoomDocument;
+
+  if (!roomData) throw new Error('Room not found');
+
+  const playerIds = Object.keys(roomData.players);
+  
+  // Check if both players have rolled
+  if (playerIds.length === 2 &&
+    playerIds.every(id => roomData.gameState?.diceRolls?.[id] !== undefined)) {
+  
+  // Ensure diceRolls is defined
+  const diceRolls = roomData.gameState?.diceRolls;
+  if (diceRolls) {
+    const rolls = playerIds.map(id => ({
+      id,
+      roll: diceRolls[id]
+    }));
+
+    // Determine first player
+    const firstPlayerId = rolls[0].roll > rolls[1].roll
+      ? rolls[0].id
+      : rolls[1].id;
+
+    // Update room with first player
+    await updateDoc(roomRef, {
+      'gameState.currentTurn': firstPlayerId,
+      status: 'inProgress'
+    });
+  } else {
+    console.error('Dice rolls not available.');
+  }
+}
+},
+
+  selectCharacters: async (roomId: string, characterId: string) => {
+    const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+  //   const telegramUser = {
+  //     id: 5532711018,
+  //     username: 'doye',
+  // };
+    if (!telegramUser) {
+      throw new Error('Telegram user not found');
     }
+  
+    const roomRef = doc(db, 'gameRooms', roomId);
+    const playerCharacter = CHARACTERS.find((char) => char.id === characterId);
+  
+    if (!playerCharacter) throw new Error('Invalid character ID');
+  
+    const gameRoomDoc = await getDoc(roomRef);
+  
+    if (!gameRoomDoc.exists()) throw new Error('Game room not found');
+  
+    const isPlayer1 = gameRoomDoc.data()?.createdBy === telegramUser?.id;
+  
+    // const existingCharacterId = gameRoomDoc.data()?.players?.[telegramUser.id]?.characterId;
+    // if (existingCharacterId) {
+    //   throw new Error('Character already selected');
+    // }
+  
+    await updateDoc(roomRef, {
+      [`players.${telegramUser.id}.characterId`]: characterId,
+      [`gameState.${isPlayer1 ? 'player1' : 'player2'}.character`]: playerCharacter,
+      [`gameState.${isPlayer1 ? 'player1' : 'player2'}.currentHealth`]: playerCharacter.baseHealth,
+      [`gameState.gameStatus`]: 'character-selected',
+    });
   },
+  
 
   determineFirstPlayer: (player1Roll, player2Roll) => {
     set((state) => ({
@@ -303,7 +379,8 @@ const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
           telegramId: telegramUser.id,
           username: telegramUser.username,
           characterId: null,
-          role: 'creator'
+          role: 'creator',
+          diceRoll: null,
         }
       },
       createdAt: serverTimestamp(),
@@ -320,6 +397,10 @@ const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
 
   joinGameRoom: async (roomId) => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    // const telegramUser = {
+    //     id: 5532711018,
+    //     username: 'doye',
+    // };
     if (!telegramUser) {
       throw new Error('Telegram user not found');
     }
@@ -344,26 +425,64 @@ const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
 
   findOpenGameRoom: async () => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    // const telegramUser = {
+    //   id: 5532711018,
+    // };
+  
     if (!telegramUser) {
       throw new Error('Telegram user not found');
     }
-
+  
     const roomsRef = collection(db, 'gameRooms');
     const q = query(
       roomsRef, 
       where('status', '==', 'waiting'),
       where('createdBy', '!=', telegramUser.id)
     );
-
+  
     const querySnapshot = await getDocs(q);
-    
+  
     if (querySnapshot.empty) {
-      return null;
+      return []; // Return an empty array if no rooms are found
     }
-
-    const roomDoc = querySnapshot.docs[0];
-    return roomDoc.id;
+  
+    // Map through the documents and return an array of their data (or IDs)
+    const rooms = querySnapshot.docs.map(doc => doc.data() as GameRoomDocument);
+  
+    return rooms;
   },
+
+  findUserRooms: async () => {
+    const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    // const telegramUser = {
+    //   id: 5532711018, 
+    // };
+  
+    if (!telegramUser) {
+      throw new Error('Telegram user not found');
+    }
+  
+    const roomsRef = collection(db, 'gameRooms');
+    
+    // Query to find rooms where the user is a player (either player 1 or player 2)
+    const q = query(
+      roomsRef,
+      where('players.' + telegramUser.id, '!=', null) // Check if the user's telegramId is in the players list
+    );
+  
+    const querySnapshot = await getDocs(q);
+  
+    if (querySnapshot.empty) {
+      return []; // Return an empty array if no rooms are found
+    }
+  
+    // Map through the documents and return an array of their data (or IDs)
+    const rooms = querySnapshot.docs.map(doc => doc.data() as GameRoomDocument);
+  
+    return rooms;
+  },
+  
+  
 
   leaveGameRoom: async () => {
     const { roomId, playerTelegramId } = get();
@@ -403,48 +522,57 @@ const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
   },
 
   init: () => {
-    const { roomId, playerTelegramId } = get();
+    const { roomId } = get(); //playerTelegramId
+    const playerTelegramId = 5532711018;
     if (!roomId || !playerTelegramId) {
-      return;
+      console.error("Room ID or Player Telegram ID is missing.");
+      return () => {}; // Return an empty unsubscribe function
     }
-  
+ 
     const roomRef = doc(db, 'gameRooms', roomId);
-    
-    return onSnapshot(roomRef, (snapshot) => {
+ 
+    const unsubscribe = onSnapshot(roomRef, (snapshot) => {
       const roomData = snapshot.data() as GameRoomDocument;
-      
-      if (!roomData) return;
-
-        const player1 = Object.values(roomData.players)[0];
-        const player2 = Object.values(roomData.players)[1];
-  
-      // Update local game state based on remote state
+ 
+      if (!roomData) {
+        console.warn("Room data does not exist.");
+        return;
+      }
+ 
+      // Extract players and game state from room data
+      const players = Object.values(roomData.players || {});
+      const player1 = players[0];
+      const player2 = players[1];
+ 
       set((state) => ({
         gameState: {
           ...state.gameState,
-          // Update players based on room data
+          // Update Player 1 state
           player1: {
             ...state.gameState.player1,
             character: player1
-            ? CHARACTERS.find(c => c.id === player1.characterId)
-            : state.gameState.player1.character,
-            currentHealth: roomData.gameState?.player1?.currentHealth ?? state.gameState.player1.currentHealth
+              ? CHARACTERS.find((c) => c.id === player1.characterId)
+              : state.gameState.player1.character,
+            currentHealth: roomData.gameState?.player1?.currentHealth ?? state.gameState.player1.currentHealth,
           },
+          // Update Player 2 state
           player2: {
             ...state.gameState.player2,
             character: player2
-              ? CHARACTERS.find(c => c.id === player2.characterId)
+              ? CHARACTERS.find((c) => c.id === player2.characterId)
               : state.gameState.player2.character,
-            currentHealth: roomData.gameState?.player2?.currentHealth ?? state.gameState.player2.currentHealth
+            currentHealth: roomData.gameState?.player2?.currentHealth ?? state.gameState.player2.currentHealth,
           },
-          // Update game status and other relevant state
+          // Update game meta-state
           currentTurn: roomData.gameState?.currentTurn ?? state.gameState.currentTurn,
           gameStatus: roomData.status || state.gameState.gameStatus,
-          lastAttack: roomData.gameState?.lastAttack ?? state.gameState.lastAttack
-        }
+          lastAttack: roomData.gameState?.lastAttack ?? state.gameState.lastAttack,
+        },
+        roomId, // Sync roomId to ensure consistency
       }));
     });
-  },
+    return unsubscribe;
+  } 
 }));
 
 export default useOnlineGameStore;

@@ -1,86 +1,72 @@
 'use client'
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import useOnlineGameStore from '@/store/online-game-store';
 import { Ability, CHARACTERS } from '@/lib/characters';
+import GameRooms from './GameRooms';
+import JoinedRooms from './UserRooms';
+import DiceRollToDetermineFirstTurn from '@/components/FirstTurnDiceRoll';
+import DiceRoll from '@/components/DiceRoll';
 
 const GameComponent: React.FC = () => {
   const {
     gameState,
-    // roomId,
-    // playerTelegramId,
+    roomId,
     createOnlineGameRoom,
-    joinGameRoom,
-    findOpenGameRoom,
+    init,
     selectCharacters,
-    determineFirstPlayer,
     performAttack,
-    // useDefense,
-    // addDefenseToInventory,
-    // skipDefense,
-    rollDice
   } = useOnlineGameStore();
 
-  const [localRoomId, setLocalRoomId] = useState<string | null>(null);
-  const [player1CharacterId, setPlayer1CharacterId] = useState<string | null>(null)
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
+
+  const handleCharacterSelection = (characterId: string) => {
+    setSelectedCharacterId(characterId);
+  };
+
+
+  useEffect(() => {
+    const unsubscribe = init();
+ 
+    return () => {
+      unsubscribe();
+    };
+  }, [init]);
 
   const handleCreateRoom = async () => {
     try {
       const newRoomId = await createOnlineGameRoom();
-      setLocalRoomId(newRoomId);
       alert(`Room created: ${newRoomId}`);
     } catch (error) {
       console.error('Error creating room', error);
     }
   };
 
-  const handleJoinRoom = async () => {
-    try {
-      const availableRoomId = await findOpenGameRoom();
-      if (availableRoomId) {
-        await joinGameRoom(availableRoomId);
-        setLocalRoomId(availableRoomId);
-        alert(`Joined room: ${availableRoomId}`);
-      } else {
-        alert('No available rooms');
+  const handleCharacterSubmit = () => {
+    handleCharacterSelect(selectedCharacterId as string);
+  }
+
+  const handleCharacterSelect = useCallback(
+    async (characterId: string) => {
+      // Ensure a room exists
+      if (!roomId || selectedCharacterId) {
+        alert('Please create or join a room first');
+        return;
       }
-    } catch (error) {
-      console.error('Error joining room', error);
-    }
-  };
-
-  const handleCharacterSelect = useCallback((characterId: string) => {
-    // Check if a room exists
-    if (!localRoomId) {
-      alert('Please create or join a room first');
-      return;
-    }
   
-    // Prevent selecting the same character twice
-    if (gameState.player1?.character?.id === characterId || 
-        gameState.player2?.character?.id === characterId) {
-      alert('This character has already been selected');
-      return;
-    }
+      try {
+        // Call the `selectCharacters` function to update Firestore
+        await selectCharacters(roomId, characterId);
   
-    // Determine which player is selecting the character
-    if (!player1CharacterId) {
-      // First player selects their character
-      setPlayer1CharacterId(characterId);
-    } else if (player1CharacterId !== characterId) {
-      // Second player selects their character
-      // Only call selectCharacters when both character IDs are different
-      selectCharacters(player1CharacterId, characterId);
-    } else {
-      alert('Please select a different character for the second player');
-    }
-  }, [localRoomId, player1CharacterId, gameState, selectCharacters]);
-
-  const handleStartGame = () => {
-    const player1Roll = rollDice();
-    const player2Roll = rollDice();
-    determineFirstPlayer(player1Roll, player2Roll);
-  };
+        // Optionally notify the user
+        alert(`Character selected: ${CHARACTERS.find((char) => char.id === characterId)?.name}`);
+      } catch (error) {
+        console.error('Error selecting character', error);
+        alert(`Error selecting character: ${error}`);
+      }
+    },
+    [roomId, selectCharacters, selectedCharacterId]
+  );
 
   const handleAttack = (ability: Ability) => {
     performAttack(gameState.currentTurn, ability);
@@ -113,43 +99,49 @@ const GameComponent: React.FC = () => {
             Create Room
           </button>
           <button 
-            onClick={handleJoinRoom} 
+            // onClick={handleJoinRoom} 
             className="bg-yellow-300 text-teal-800 font-semibold py-2 px-4 rounded-md shadow-md hover:bg-yellow-400"
           >
             Join Room
           </button>
         </div>
-        {localRoomId && <p className="text-teal-700 mt-4">Current Room: {localRoomId}</p>}
+        {roomId && <p className="text-teal-700 mt-4">Current Room: {roomId}</p>}
       </div>
 
       {/* Character Selection */}
+      <div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-  {CHARACTERS.map(character => (
-    <button 
-      key={character.id}
-      onClick={() => handleCharacterSelect(character.id)}
-      disabled={
-        gameState.player1?.character?.id === character.id || 
-        gameState.player2?.character?.id === character.id ||
-        (player1CharacterId === character.id) 
-        ? true 
-        : undefined
-      }
-      className={`
-        text-xl font-medium py-2 px-4 rounded-md shadow-md transition transform hover:scale-105
-        ${
-          gameState.player1?.character?.id === character.id || 
-          gameState.player2?.character?.id === character.id ||
-          (player1CharacterId && player1CharacterId === character.id)
-          ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-          : 'bg-pink-200 text-teal-700 hover:bg-teal-300'
-        }
-      `}
-    >
-      {character.name}
-    </button>
-  ))}
-</div>
+        {CHARACTERS.map((character) => (
+          <button
+            key={character.id}
+            onClick={() => handleCharacterSelection(character.id)}
+            className={`
+              text-xl font-medium py-2 px-4 rounded-md shadow-md transition transform hover:scale-105
+              ${selectedCharacterId === character.id
+                ? 'bg-teal-400 text-white' // Highlight selected character
+                : 'bg-pink-200 text-teal-700 hover:bg-teal-300'
+              }
+            `}
+          >
+            {character.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Submit Button */}
+      <div className="mt-4">
+        <button
+          onClick={() => handleCharacterSubmit}
+          disabled={!selectedCharacterId} // Disable if no character selected
+          className="bg-teal-500 text-white py-2 px-4 rounded-md disabled:bg-gray-300 disabled:text-gray-500"
+        >
+          Submit Selection
+        </button>
+      </div>
+    </div>
+
+      <GameRooms />
+      <JoinedRooms />
 
       {/* Game State Display */}
       <div className="bg-white p-6 rounded-xl shadow-lg mb-6">
@@ -173,12 +165,8 @@ const GameComponent: React.FC = () => {
       {/* Game Controls */}
       <div className="bg-white p-6 rounded-xl shadow-lg">
         <div className="mb-4">
-          <button 
-            onClick={handleStartGame} 
-            className="bg-teal-300 text-teal-800 font-semibold py-2 px-4 rounded-md shadow-md hover:bg-teal-400"
-          >
-            Determine First Player
-          </button>
+          <DiceRollToDetermineFirstTurn />
+          <DiceRoll />
         </div>
 
         {/* Attack Buttons */}
