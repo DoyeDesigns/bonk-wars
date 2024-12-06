@@ -30,7 +30,7 @@ export function TelegramProvider({ children }: TelegramProviderProps) {
 
   useEffect(() => {
     if (window?.Telegram && window?.Telegram?.WebApp) {
-      const tele = window.Telegram.WebApp;
+      const tele = window?.Telegram?.WebApp;
       tele.ready();
       tele.expand();
       const telegramUser = tele.initDataUnsafe?.user;

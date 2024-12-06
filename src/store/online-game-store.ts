@@ -104,7 +104,17 @@ interface OnlineGameStore {
 
 const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
   roomId: null,
-  setRoomId: (id: string) => set({ roomId: id }),
+  setRoomId: (id: string) => {
+    const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    if (!telegramUser) return;
+    set((state) => ({
+      gameState: {
+        ...state.gameState,
+        roomId: id,
+        playerTelegramId: telegramUser?.id
+      },
+    }))
+  },
   playerTelegramId: null,
   gameState: {
     player1: {
