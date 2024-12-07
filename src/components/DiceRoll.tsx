@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import useOnlineGameStore from '@/store/online-game-store';
+import { useToast } from '@/contexts/toast-context';
 
 const DiceRoll: React.FC = () => {
   const { rollAndRecordDice, gameState, performAttack, addDefenseToInventory } =
@@ -10,10 +11,13 @@ const DiceRoll: React.FC = () => {
   const [rollNumber, setRollNumber] = useState(0);
   const [telegramUserId, setTelegramUserId] = useState<number | null>(null);
 
+  const { addToast } = useToast();
+
   useEffect(() => {
     if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
       setTelegramUserId(window.Telegram.WebApp.initDataUnsafe.user.id);
     }
+    // setTelegramUserId(5532711018);
   }, []);
 
   const isPlayerTurn = (() => {
@@ -30,8 +34,6 @@ const DiceRoll: React.FC = () => {
 
     return false;
   })();
-
-  console.log(isPlayerTurn)
 
   const handleRollDice = async () => {
     try {
@@ -58,6 +60,7 @@ const DiceRoll: React.FC = () => {
           } else {
             // For attack abilities
             performAttack(currentPlayer, ability);
+            addToast(`${currentPlayer} attacked`, 'info')
           }
         }
       } else {

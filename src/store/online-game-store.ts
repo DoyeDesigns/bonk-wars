@@ -583,8 +583,8 @@ checkDiceRollsAndSetTurn: async () => {
 
   init: () => {
     const { roomId } = get(); //playerTelegramId
-    // const telegramUser = {id: 5532711018};
-    const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    const telegramUser = {id: 5532711018};
+    // const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
     if (!roomId || !telegramUser?.id) {
       console.error("Room ID or Player Telegram ID is missing.");
       return () => {}; // Return an empty unsubscribe function
@@ -608,9 +608,9 @@ checkDiceRollsAndSetTurn: async () => {
       set((state) => ({
         gameState: {
           ...state.gameState,
-          // Update Player 1 state
           player1: {
             ...state.gameState.player1,
+            id: roomData?.gameState?.player1?.id ?? state.gameState.player1.id,
             character: player1
               ? CHARACTERS.find((c) => c.id === player1.characterId)
               : state.gameState.player1.character,
@@ -619,6 +619,7 @@ checkDiceRollsAndSetTurn: async () => {
           // Update Player 2 state
           player2: {
             ...state.gameState.player2,
+            id: roomData?.gameState?.player2?.id ?? state.gameState.player2.id,
             character: player2
               ? CHARACTERS.find((c) => c.id === player2.characterId)
               : state.gameState.player2.character,
@@ -626,10 +627,11 @@ checkDiceRollsAndSetTurn: async () => {
           },
           // Update game meta-state
           currentTurn: roomData.gameState?.currentTurn ?? state.gameState.currentTurn,
-          gameStatus: roomData.status || state.gameState.gameStatus,
+          gameStatus: roomData.gameState?.gameStatus ?? state.gameState.gameStatus,
           lastAttack: roomData.gameState?.lastAttack ?? state.gameState.lastAttack,
+          diceRolls: roomData.gameState?.diceRolls ?? state.gameState.diceRolls
         },
-        roomId, // Sync roomId to ensure consistency
+        roomId,
       }));
     });
     return unsubscribe;

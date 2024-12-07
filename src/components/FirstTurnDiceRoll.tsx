@@ -13,6 +13,7 @@ const DiceRollToDetermineFirstTurn = () => {
       if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
         setTelegramUserId(window.Telegram.WebApp.initDataUnsafe.user.id);
       }
+      // setTelegramUserId(5532711018);
     }, []);
   
     const hasPlayerRolled = (() => {
@@ -21,8 +22,6 @@ const DiceRollToDetermineFirstTurn = () => {
       }
       return false;
     })();
-
-    console.log(hasPlayerRolled)
   
     const handleRollDice = async () => {
       if (hasPlayerRolled) {
@@ -47,13 +46,7 @@ const DiceRollToDetermineFirstTurn = () => {
           onClick={handleRollDice}
           >Roll Dice to determine first player
         </button>
-        <p>
-        {rollNumber !== null
-          ? `You rolled: ${rollNumber}`
-          : hasPlayerRolled
-          ? `Your roll: ${gameState?.diceRolls?.[telegramUserId!]}`
-          : "Roll the dice to start!"}
-      </p>
+        <p> {gameState?.diceRolls?.[telegramUserId!] || rollNumber}</p>
       </div>
     );
   };

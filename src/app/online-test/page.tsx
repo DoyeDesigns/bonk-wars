@@ -53,10 +53,10 @@ const GameComponent: React.FC = () => {
   useEffect(() => {
     if (
       gameState.gameStatus === 'inProgress' &&
-      lastAttackDetails !== null &&
-      lastAttackDetails?.ability?.type === 'attack'
+      gameState.lastAttack !== null &&
+      gameState.lastAttack?.ability?.type === 'attack'
     ) {
-      const attackingPlayer = lastAttackDetails.attackingPlayer;
+      const attackingPlayer = gameState.lastAttack.attackingPlayer;
       const defendingPlayer = attackingPlayer === 'player1' ? 'player2' : 'player1';
       const defenseInventory = gameState[defendingPlayer].defenseInventory;
 
@@ -73,7 +73,7 @@ const GameComponent: React.FC = () => {
     } else {
       setShowDefenseModal(false);
     }
-  }, [gameState, lastAttackDetails]);
+  }, [gameState]);
 
   const handleDefenseSelection = async (defenseType: string | null) => {
     const { ability, attackingPlayer } = lastAttackDetails;
