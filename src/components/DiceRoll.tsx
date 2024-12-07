@@ -1,32 +1,68 @@
-'use client'
+'use client';
 
-import useOnlineGameStore from "@/store/online-game-store";
-import React, { useState } from "react";
-
-
+import React, { useState } from 'react';
+import useOnlineGameStore from '@/store/online-game-store';
 
 const DiceRoll: React.FC = () => {
-    const { rollAndRecordDice } = useOnlineGameStore();
+  const { rollAndRecordDice, gameState, performAttack, addDefenseToInventory } =
+    useOnlineGameStore();
 
-    const [rollNumber, setRollNumber] = useState(0);
-  
-    const handleRollDice = async () => {
-      try {
-        const rolledDiceNumber = await rollAndRecordDice();
-        setRollNumber(rolledDiceNumber);
-      } catch (error) {
-        console.error('Error rolling dice:', error);
+  const [rollNumber, setRollNumber] = useState(0);
+
+  // Assuming you are fetching the user's Telegram ID from the store/context
+  const telegramUserId = window.Telegram?.WebApp?.initDataUnsafe?.user;
+
+  const handleRollDice = async () => {
+    console.log(gameState);
+    try {
+      const rolledDiceNumber = await rollAndRecordDice();
+      const currentPlayer = gameState.currentTurn;
+      const player = gameState[currentPlayer];
+
+      if (player?.character) {
+        const abilities = player.character.abilities;
+
+        if (rolledDiceNumber > 0 && rolledDiceNumber <= abilities.length) {
+          const ability = abilities[rolledDiceNumber - 1];
+
+          // If ability is a defense, add to inventory
+          if (ability.type === 'defense') {
+            if (ability.defenseType) {
+              addDefenseToInventory(currentPlayer, ability.defenseType);
+            } else {
+              console.error(
+                'Defense type is undefined for the given ability:',
+                ability
+              );
+            }
+          } else {
+            // For attack abilities
+            performAttack(currentPlayer, ability);
+          }
+        }
+      } else {
+        console.error('Player or player.character is undefined');
       }
-    };
-  
-    return (
-      <div className="flex items-center gap-5 ">
-        <button className="bg-teal-500 text-white py-2 px-4 rounded-md disabled:bg-gray-300 disabled:text-gray-500" onClick={handleRollDice}>Roll Dice</button>
-        <p>{rollNumber}</p>
-      </div>
-    );
+      setRollNumber(rolledDiceNumber);
+    } catch (error) {
+      console.error('Error rolling dice:', error);
+    }
   };
-  
-  export default DiceRoll;
-  
-  
+
+  const isPlayerTurn = gameState?.currentTurn === (telegramUserId?.id === gameState?.player1?.id ? 'player1' : 'player2');
+
+  return (
+    <div className="flex items-center gap-5">
+      <button 
+        disabled={!isPlayerTurn}  // Disable the button if it's not the player's turn
+        className="bg-teal-500 text-white py-2 px-4 rounded-md disabled:bg-gray-300 disabled:text-gray-500"
+        onClick={handleRollDice}
+      >
+        Roll Dice
+      </button>
+      <p>{rollNumber}</p>
+    </div>
+  );
+};
+
+export default DiceRoll;

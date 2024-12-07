@@ -9,11 +9,16 @@ import {
   query,
   where,
   getDocs,
-  getDoc
+  getDoc,
+  writeBatch
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { CHARACTERS, Character, Ability } from '@/lib/characters';
 import { Timestamp } from 'firebase/firestore';
+
+type UpdateData = {
+  [key: string]: number | string | null;
+};
 
 // Define the structure of a player in the game room
 interface GameRoomPlayer {
@@ -43,6 +48,7 @@ interface DefenseInventory {
 
 interface GameState {
   player1: {
+    id: number | null;
     character?: Character;
     currentHealth: number;
     defenseInventory: DefenseInventory;
@@ -52,6 +58,7 @@ interface GameState {
     };
   };
   player2: {
+    id: number | null;
     character?: Character;
     currentHealth: number;
     defenseInventory: DefenseInventory;
@@ -80,13 +87,12 @@ interface OnlineGameStore {
   rollAndRecordDice: () => Promise<number>;
   checkDiceRollsAndSetTurn: () => void;
   selectCharacters: (roomId: string, characterId: string) => void;
-  determineFirstPlayer: (player1Roll: number, player2Roll: number) => void;
   performAttack: (attackingPlayer: 'player1' | 'player2', ability: Ability) => void;
   useDefense: (
     defendingPlayer: 'player1' | 'player2',
     defenseAbility: Ability,
     incomingDamage: number
-  ) => boolean;
+  ) => Promise<boolean>;
   addDefenseToInventory: (player: 'player1' | 'player2', defenseType: string) => void;
   skipDefense: (
     defendingPlayer: 'player1' | 'player2', 
@@ -100,7 +106,6 @@ interface OnlineGameStore {
   leaveGameRoom: () => Promise<void>;
   init: () => () => void;
 }
-
 
 const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
   roomId: null,
@@ -122,11 +127,13 @@ const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
   playerTelegramId: null,
   gameState: {
     player1: {
+      id: null,
       character: CHARACTERS[0],
       currentHealth: CHARACTERS[0].baseHealth,
       defenseInventory: {},
     },
     player2: {
+      id: null,
       character: CHARACTERS[1],
       currentHealth: CHARACTERS[1].baseHealth,
       defenseInventory: {},
@@ -157,41 +164,65 @@ rollAndRecordDice: async () => {
 checkDiceRollsAndSetTurn: async () => {
   const { roomId } = get();
   if (!roomId) return;
+
   const roomRef = doc(db, 'gameRooms', roomId);
   const roomSnapshot = await getDoc(roomRef);
   const roomData = roomSnapshot.data() as GameRoomDocument;
 
   if (!roomData) throw new Error('Room not found');
 
-  const playerIds = Object.keys(roomData.players);
-  
-  // Check if both players have rolled
-  if (playerIds.length === 2 &&
-    playerIds.every(id => roomData.gameState?.diceRolls?.[id] !== undefined)) {
-  
-  // Ensure diceRolls is defined
-  const diceRolls = roomData.gameState?.diceRolls;
-  if (diceRolls) {
-    const rolls = playerIds.map(id => ({
-      id,
-      roll: diceRolls[id]
-    }));
-
-    // Determine first player
-    const firstPlayerId = rolls[0].roll > rolls[1].roll
-      ? rolls[0].id
-      : rolls[1].id;
-
-    // Update room with first player
-    await updateDoc(roomRef, {
-      'gameState.currentTurn': firstPlayerId,
-      status: 'inProgress'
-    });
-  } else {
-    console.error('Dice rolls not available.');
+  const { players, gameState } = roomData;
+  if (!players || !gameState?.diceRolls) {
+    console.error('Players or dice rolls are missing.');
+    return;
   }
-}
+
+  const diceRolls = gameState.diceRolls;
+  const playerIds = Object.keys(players);
+
+  // Ensure exactly two players are present and both have rolled dice
+  if (
+    playerIds.length !== 2 ||
+    playerIds.some((id) => diceRolls[id] === undefined)
+  ) {
+    console.error('Not all players have rolled their dice.');
+    return;
+  }
+
+  // Map player IDs to roles (player1 and player2)
+  const [player1Id, player2Id] = playerIds;
+  const playerRoles = {
+    player1: { id: player1Id, roll: gameState.diceRolls[player1Id] },
+    player2: { id: player2Id, roll: gameState.diceRolls[player2Id] },
+  };
+
+  // Determine the first player based on the dice rolls
+  const firstPlayer =
+    playerRoles.player1.roll > playerRoles.player2.roll
+      ? 'player1'
+      : 'player2';
+
+  // Prepare updates for Firestore
+  const updates = {
+    'gameState.player1': {
+      id: player1Id,
+    },
+    'gameState.player2': {
+      id: player2Id,
+    },
+    'gameState.currentTurn': firstPlayer,
+    'gameState.status': 'inProgress',
+  };
+
+  try {
+    // Perform a single Firestore update for efficiency
+    await updateDoc(roomRef, updates);
+    console.log('Game state updated successfully.');
+  } catch (error) {
+    console.error('Failed to update game state:', error);
+  }
 },
+
 
   selectCharacters: async (roomId: string, characterId: string) => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
@@ -214,94 +245,96 @@ checkDiceRollsAndSetTurn: async () => {
   
     const isPlayer1 = gameRoomDoc.data()?.createdBy === telegramUser?.id;
   
-    // const existingCharacterId = gameRoomDoc.data()?.players?.[telegramUser.id]?.characterId;
-    // if (existingCharacterId) {
-    //   throw new Error('Character already selected');
-    // }
-  
-    await updateDoc(roomRef, {
-      [`players.${telegramUser.id}.characterId`]: characterId,
-      [`gameState.${isPlayer1 ? 'player1' : 'player2'}.character`]: playerCharacter,
-      [`gameState.${isPlayer1 ? 'player1' : 'player2'}.currentHealth`]: playerCharacter.baseHealth,
-      [`gameState.gameStatus`]: 'character-selected',
-    });
-  },
-  
-
-  determineFirstPlayer: (player1Roll, player2Roll) => {
-    set((state) => ({
-      gameState: {
-        ...state.gameState,
-        currentTurn: player1Roll > player2Roll ? 'player1' : 'player2',
-        gameStatus: 'inProgress',
-      },
-    }));
-  },
-
-  // ... (rest of the methods from the original game store)
-  // Copy all methods from the original useGameStore implementation
-
-  addDefenseToInventory: (player, defenseType) => {
-    set((state) => {
-      const currentInventory = state.gameState[player].defenseInventory;
-      const updatedInventory = {
-        ...currentInventory,
-        [defenseType]: (currentInventory[defenseType] || 0) + 1,
-      };
-
-      // Switch turn when adding a defense
-      const nextPlayer = player === 'player1' ? 'player2' : 'player1';
-
-      return {
-        gameState: {
-          ...state.gameState,
-          [player]: {
-            ...state.gameState[player],
-            defenseInventory: updatedInventory,
-          },
-          currentTurn: nextPlayer,
-        },
-      };
-    });
-  },
-
-  skipDefense: (defendingPlayer, incomingDamage, ability) => {
-  set((state) => {
-    const newState = { ...state.gameState };
-    // const opponentPlayer = defendingPlayer === 'player1' ? 'player2' : 'player1';
-
-    // Apply damage to the player
-    newState[defendingPlayer].currentHealth -= incomingDamage;
-
-    // Store the skipped defense details for potential later use
-    newState[defendingPlayer].skippedDefense = {
-      ability,
-      damage: incomingDamage
-    };
-
-    // Important: Keep the current turn with the defending player
-    // This allows the defender to roll dice and attack after taking damage
-    newState.currentTurn = defendingPlayer;
-
-    // Check if game is over
-    if (newState[defendingPlayer].currentHealth <= 0) {
-      newState.gameStatus = 'finished';
+    const existingCharacterId = gameRoomDoc.data()?.players?.[telegramUser.id]?.characterId;
+    if (existingCharacterId) {
+      throw new Error('Character already selected');
     }
+  
+    const batch = writeBatch(db);
 
-    return { gameState: newState };
+  batch.update(roomRef, {
+    [`players.${telegramUser.id}.characterId`]: characterId,
+    [`gameState.${isPlayer1 ? 'player1' : 'player2'}.character`]: playerCharacter,
+    [`gameState.${isPlayer1 ? 'player1' : 'player2'}.currentHealth`]: playerCharacter.baseHealth,
+    [`gameState.gameStatus`]: 'character-selected',
   });
-},
 
-  // Modify the useDefense method to clear skippedDefense when a defense is used
-  useDefense: (defendingPlayer, defenseAbility, incomingDamage) => {
-    const opponentPlayer = defendingPlayer === 'player1' ? 'player2' : 'player1';
-    const gameState = get().gameState;
+  try {
+    await batch.commit();
+    console.log('Character selection updated successfully for:', telegramUser.username);
+  } catch (error) {
+    console.error('Failed to select character:', error);
+    throw new Error('Failed to update the game room. Please try again.');
+  }
+  },
+
+
+  addDefenseToInventory: async (player, defenseType) => {
+    const { roomId, gameState } = get();
+    if (!roomId) throw new Error('No active game room');
+  
+    const roomRef = doc(db, 'gameRooms', roomId);
+    const nextPlayer = player === 'player1' ? 'player2' : 'player1';
+  
+    // Prepare the update for Firestore
+    const updateData = {
+      [`gameState.${player}.defenseInventory.${defenseType}`]: 
+        (gameState[player].defenseInventory[defenseType] || 0) + 1,
+      'gameState.currentTurn': nextPlayer,
+    };
+  
+    try {
+      // Update backend first
+      await updateDoc(roomRef, updateData);
+  
+      // Local state update will be handled by the onSnapshot listener in init()
+    } catch (error) {
+      console.error('Error adding defense to inventory:', error);
+      throw error;
+    }
+  },
+  
+  skipDefense: async (defendingPlayer, incomingDamage, ability) => {
+    const { roomId, gameState } = get();
+    if (!roomId) throw new Error('No active game room');
+  
+    const roomRef = doc(db, 'gameRooms', roomId);
+  
+    // Prepare the update for Firestore
+    const updateData = {
+      [`gameState.${defendingPlayer}.currentHealth`]: 
+        gameState[defendingPlayer].currentHealth - incomingDamage,
+      [`gameState.${defendingPlayer}.skippedDefense`]: {
+        ability,
+        damage: incomingDamage
+      },
+      'gameState.currentTurn': defendingPlayer,
+      ...(gameState[defendingPlayer].currentHealth - incomingDamage <= 0 
+        ? { status: 'finished' } 
+        : {}),
+    };
+  
+    try {
+      // Update backend first
+      await updateDoc(roomRef, updateData);
+  
+      // Local state update will be handled by the onSnapshot listener in init()
+    } catch (error) {
+      console.error('Error skipping defense:', error);
+      throw error;
+    }
+  },
+  
+  useDefense: async (defendingPlayer, defenseAbility, incomingDamage) => {
+    const { roomId, gameState } = get();
+    if (!roomId) throw new Error('No active game room');
   
     if (!defenseAbility?.defenseType) {
       console.error('Invalid defense ability provided');
       return false;
     }
   
+    const opponentPlayer = defendingPlayer === 'player1' ? 'player2' : 'player1';
     const defenseType = defenseAbility.defenseType;
   
     // Check if defense is available in inventory
@@ -309,70 +342,86 @@ checkDiceRollsAndSetTurn: async () => {
       return false;
     }
   
-    set((state) => {
-      const newState = { ...state.gameState };
+    const roomRef = doc(db, 'gameRooms', roomId);
   
-      // Reduce defense count in inventory
-      newState[defendingPlayer].defenseInventory[defenseType]--;
-
-      // Clear any previously skipped defense
-      delete newState[defendingPlayer].skippedDefense;
+    // Prepare the update for Firestore
+    const updateData: UpdateData = {
+      [`gameState.${defendingPlayer}.defenseInventory.${defenseType}`]: 
+        (gameState[defendingPlayer].defenseInventory[defenseType] || 1) - 1,
+      [`gameState.${defendingPlayer}.skippedDefense`]: null,
+    };
   
-      switch (defenseType) {
-        case 'dodge':
-          // Keep the current turn with the defending player for dodge
-          // No damage is taken
-          break;
+    // Apply defense-specific logic
+    switch (defenseType) {
+      case 'dodge':
+        // No damage, keep current turn
+        updateData['gameState.currentTurn'] = defendingPlayer;
+        break;
   
-        case 'reflect':
-          // Reverse the damage back to the opponent
-          newState[opponentPlayer].currentHealth -= incomingDamage;
-          // Switch turns for reflect
-          newState.currentTurn = opponentPlayer;
-          break;
+      case 'reflect':
+        // Reflect damage back to opponent
+        updateData[`gameState.${opponentPlayer}.currentHealth`] = 
+          gameState[opponentPlayer].currentHealth - incomingDamage;
+        updateData['gameState.currentTurn'] = opponentPlayer;
+        break;
   
-        case 'block':
-          // Block reduces the incoming damage
-          newState[defendingPlayer].currentHealth -= Math.max(0, incomingDamage - 25);
-          // Switch turns for block
-          newState.currentTurn = opponentPlayer;
-          break;
+      case 'block':
+        // Reduce incoming damage
+        updateData[`gameState.${defendingPlayer}.currentHealth`] = 
+          gameState[defendingPlayer].currentHealth - Math.max(0, incomingDamage - 25);
+        updateData['gameState.currentTurn'] = opponentPlayer;
+        break;
   
-        default:
-          console.error('Unknown defense type');
-          break;
-      }
+      default:
+        console.error('Unknown defense type');
+        return false;
+    }
   
-      // Check if game is over
-      if (newState[opponentPlayer].currentHealth <= 0 || newState[defendingPlayer].currentHealth <= 0) {
-        newState.gameStatus = 'finished';
-      }
+    // Check if game is over
+    if (gameState[opponentPlayer].currentHealth - (defenseType === 'reflect' ? incomingDamage : 0) <= 0 ||
+        gameState[defendingPlayer].currentHealth - 
+        (defenseType === 'block' ? Math.max(0, incomingDamage - 25) : 
+         defenseType === 'dodge' ? 0 : incomingDamage) <= 0) {
+      updateData['status'] = 'finished';
+    }
   
-      return { gameState: newState };
-    });
+    try {
+      // Update backend first
+      await updateDoc(roomRef, updateData);
   
-    return true;
+      // Local state update will be handled by the onSnapshot listener in init()
+      return true;
+    } catch (error) {
+      console.error('Error using defense:', error);
+      throw error;
+    }
   },
-
-  // Modify performAttack to track last attack details
-  performAttack: (attackingPlayer, ability) => {
+  
+  performAttack: async (attackingPlayer, ability) => {
+    const { roomId } = get();
+    if (!roomId) throw new Error('No active game room');
+  
     const opponentKey = attackingPlayer === 'player1' ? 'player2' : 'player1';
-    // const gameState = get().gameState;
+    const roomRef = doc(db, 'gameRooms', roomId);
   
-    set((state) => {
-      const newState = { ...state.gameState };
+    // Prepare the update for Firestore
+    const updateData = {
+      'gameState.currentTurn': opponentKey,
+      'gameState.lastAttack': { 
+        ability, 
+        attackingPlayer 
+      }
+    };
   
-      // REMOVE health subtraction
-      // newState[opponentKey].currentHealth -= ability.value;
+    try {
+      // Update backend first
+      await updateDoc(roomRef, updateData);
   
-      // Switch turns
-      newState.currentTurn = opponentKey;
-  
-      // Store last attack details for defense modal
-      newState.lastAttack = { ability, attackingPlayer };
-  
-      return { gameState: newState };
-    });
+      // Local state update will be handled by the onSnapshot listener in init()
+    } catch (error) {
+      console.error('Error performing attack:', error);
+      throw error;
+    }
   },
 
   createOnlineGameRoom: async () => {
@@ -520,11 +569,13 @@ checkDiceRollsAndSetTurn: async () => {
     set(() => ({
       gameState: {
         player1: {
+          id: null,
           character: CHARACTERS[0],
           currentHealth: CHARACTERS[0].baseHealth,
           defenseInventory: {},
         },
         player2: {
+          id: null,
           character: CHARACTERS[1],
           currentHealth: CHARACTERS[1].baseHealth,
           defenseInventory: {},
@@ -537,7 +588,7 @@ checkDiceRollsAndSetTurn: async () => {
 
   init: () => {
     const { roomId } = get(); //playerTelegramId
-    // const playerTelegramId = 5532711018;
+    // const telegramUser = {id: 5532711018};
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
     if (!roomId || !telegramUser?.id) {
       console.error("Room ID or Player Telegram ID is missing.");

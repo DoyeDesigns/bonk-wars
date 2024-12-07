@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Image from 'next/image'
-import { useUser } from '@/contexts/TelegramContext'
+import { useUser } from '@/contexts/telegram-context'
 
 export default function Profile() {
     const { user } = useUser();

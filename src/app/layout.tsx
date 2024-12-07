@@ -3,7 +3,8 @@ import localFont from "next/font/local";
 import "./globals.css";
 import NavBar from "@/components/NavBar";
 import Script from "next/script";
-import { TelegramProvider } from "@/contexts/TelegramContext";
+import { TelegramProvider } from "@/contexts/telegram-context";
+import { ToastProvider } from "@/contexts/toast-context";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -28,6 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <ToastProvider>
       <TelegramProvider >
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen`}
@@ -37,6 +39,7 @@ export default function RootLayout({
         <NavBar />
       </body>
       </TelegramProvider>
+      </ToastProvider>
     </html>
   );
 }
