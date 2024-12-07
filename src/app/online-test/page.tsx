@@ -7,6 +7,14 @@ import GameRooms from './GameRooms';
 import JoinedRooms from './UserRooms';
 import DiceRollToDetermineFirstTurn from '@/components/FirstTurnDiceRoll';
 import DiceRoll from '@/components/DiceRoll';
+import DefenseModal from '@/components/DefenceModal';
+import { useToast } from '@/contexts/toast-context';
+
+
+interface LastAttackDetails {
+  ability: Ability | null;
+  attackingPlayer: 'player1' | 'player2' | null;
+}
 
 const GameComponent: React.FC = () => {
   const {
@@ -15,10 +23,17 @@ const GameComponent: React.FC = () => {
     createOnlineGameRoom,
     init,
     selectCharacters,
-    performAttack,
+    // performAttack,
+    // useDefense,
+    // skipDefense,
   } = useOnlineGameStore();
 
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
+  const [showSkipDefenseButton, setShowSkipDefenseButton] = useState(false);
+  const [lastAttackDetails, setLastAttackDetails] = useState<LastAttackDetails>({ ability: null, attackingPlayer: null });
+  const [showDefenseModal, setShowDefenseModal] = useState(false);
+
+  const { addToast } = useToast()
 
   const handleCharacterSelection = (characterId: string) => {
     setSelectedCharacterId(characterId);
@@ -33,6 +48,77 @@ const GameComponent: React.FC = () => {
       unsubscribe();
     };
   }, [init]);
+
+  // Handle defense modal logic
+  useEffect(() => {
+    if (
+      gameState.gameStatus === 'inProgress' &&
+      lastAttackDetails !== null &&
+      lastAttackDetails?.ability?.type === 'attack'
+    ) {
+      const attackingPlayer = lastAttackDetails.attackingPlayer;
+      const defendingPlayer = attackingPlayer === 'player1' ? 'player2' : 'player1';
+      const defenseInventory = gameState[defendingPlayer].defenseInventory;
+
+      const hasDefenses = Object.values(defenseInventory).some((count) => count > 0);
+
+      // Crucial change: Only show modal for the DEFENDING player
+      if (hasDefenses) {
+        setShowDefenseModal(true);
+        setShowSkipDefenseButton(true);
+      } else {
+        // If no defenses, automatically skip defense
+        handleDefenseSelection(null);
+      }
+    } else {
+      setShowDefenseModal(false);
+    }
+  }, [gameState, lastAttackDetails]);
+
+  const handleDefenseSelection = async (defenseType: string | null) => {
+    const { ability, attackingPlayer } = lastAttackDetails;
+    if (!ability || !attackingPlayer) return;
+ 
+    const defendingPlayer = attackingPlayer === 'player1' ? 'player2' : 'player1';
+    const incomingDamage = ability.value;
+ 
+    if (defenseType === null) {
+      await useOnlineGameStore.getState().skipDefense(defendingPlayer, incomingDamage, ability);
+      addToast(`${defendingPlayer} took ${incomingDamage} damage from ${ability.name}`, 'info');
+    } else {
+      const defenseAbility: Ability = {
+        id: `${defendingPlayer}-${defenseType}`,
+        name: defenseType,
+        defenseType: defenseType as 'dodge' | 'block' | 'reflect',
+        value: 0,
+        type: 'defense',
+        description: '',
+      };
+ 
+      const wasDefenseSuccessful = await useOnlineGameStore.getState().useDefense(
+        defendingPlayer,
+        defenseAbility,
+        incomingDamage
+      );
+ 
+      if (wasDefenseSuccessful) {
+        switch (defenseType) {
+          case 'dodge':
+            addToast(`${defendingPlayer} dodged the attack`, 'info');
+            break;
+          case 'block':
+            addToast(`${defendingPlayer} blocked the attack`, 'info');
+            break;
+          case 'reflect':
+            addToast(`${defendingPlayer} reflected the attack`, 'info');
+            break;
+        }
+      }
+    }
+ 
+    setShowDefenseModal(false);
+    setLastAttackDetails({ ability: null, attackingPlayer: null });
+};
 
   const handleCreateRoom = async () => {
     try {
@@ -57,7 +143,7 @@ const GameComponent: React.FC = () => {
   
       try {
         // Call the `selectCharacters` function to update Firestore
-        await selectCharacters(roomId, characterId);
+        selectCharacters(roomId, characterId);
   
         // Optionally notify the user
         alert(`Character selected: ${CHARACTERS.find((char) => char.id === characterId)?.name}`);
@@ -69,21 +155,31 @@ const GameComponent: React.FC = () => {
     [roomId, selectCharacters, selectedCharacterId]
   );
 
-  const handleAttack = (ability: Ability) => {
-    performAttack(gameState.currentTurn, ability);
-  };
+  // const handleAttack = async (ability: Ability) => {
+  //   try {
+  //     performAttack(gameState.currentTurn, ability);
+  //     addToast(`${gameState[gameState.currentTurn].character?.name} used ${ability.name}`, 'info');
+  //   } catch (error) {
+  //     addToast('Error performing attack', 'error');
+  //   }
+  // };
 
-  const handleDefense = useCallback((defenseAbility: Ability) => {
-    const lastAttack = gameState.lastAttack;
-    if (lastAttack) {
-      // Directly use useDefense from the store
-      useOnlineGameStore.getState().useDefense(
-        gameState.currentTurn === 'player1' ? 'player2' : 'player1', 
-        defenseAbility, 
-        lastAttack.ability.value
-      );
-    }
-  }, [gameState]);
+  // const handleSkipDefense = useCallback(async () => {
+  //   const lastAttack = gameState.lastAttack;
+  //   if (lastAttack) {
+  //     try {
+  //       const defendingPlayer = gameState.currentTurn === 'player1' ? 'player2' : 'player1';
+  //       await skipDefense(
+  //         defendingPlayer, 
+  //         lastAttack.ability.value, 
+  //         lastAttack.ability
+  //       );
+  //       addToast(`${gameState[defendingPlayer].character?.name} skipped defense and took damage`, 'warning');
+  //     } catch (error) {
+  //       addToast('Error skipping defense', 'error');
+  //     }
+  //   }
+  // }, [gameState, skipDefense, addToast]);
 
   return (
     <div className="bg-gradient-to-r from-pink-200 via-yellow-200 to-teal-200 h-full overflow-auto p-8 font-sans pb-[500px]">
@@ -173,7 +269,7 @@ const GameComponent: React.FC = () => {
         </div>
 
         {/* Attack Buttons */}
-        <div className="mb-4">
+        {/* <div className="mb-4">
           <h3 className="text-xl font-semibold text-teal-700">Attacks</h3>
           <div className="space-x-4 space-y-2">
             {gameState?.player1?.character?.abilities.map(ability => (
@@ -187,31 +283,22 @@ const GameComponent: React.FC = () => {
               </button>
             ))}
           </div>
-        </div>
-
-        {/* Defense Buttons */}
-        <div>
-          <h3 className="text-xl font-semibold text-teal-700">Defenses</h3>
-          <div className="space-x-4">
-            <button 
-              onClick={() => handleDefense({ defenseType: 'dodge' } as Ability)}
-              disabled={gameState.currentTurn !== 'player2'}
-              className="bg-yellow-300 text-teal-800 font-semibold py-2 px-4 rounded-md shadow-md disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-yellow-400"
-            >
-              Dodge
-            </button>
-            <button 
-              onClick={() => handleDefense({ defenseType: 'block' } as Ability)}
-              disabled={gameState.currentTurn !== 'player2'}
-              className="bg-teal-300 text-teal-800 font-semibold py-2 px-4 rounded-md shadow-md disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-teal-400"
-            >
-              Block
-            </button>
-          </div>
-        </div>
+        </div> */}
       </div>
+      {showDefenseModal && (
+        <DefenseModal
+          player={lastAttackDetails.attackingPlayer === 'player1' ? 'player2' : 'player1'}
+          onClose={() => {
+            setShowDefenseModal(false);
+            setShowSkipDefenseButton(false);
+          }}
+          onDefenseSelect={handleDefenseSelection}
+          showSkipButton={showSkipDefenseButton} // Pass this prop to the modal
+        />
+      )}
     </div>
   );
 };
 
 export default GameComponent;
+
