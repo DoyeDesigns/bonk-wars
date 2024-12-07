@@ -205,7 +205,7 @@ checkDiceRollsAndSetTurn: async () => {
   // Prepare updates for Firestore
   const updates = {
     'gameState.currentTurn': firstPlayer,
-    'gameState.gamestatus': 'inProgress',
+    'gameState.gameStatus': 'inProgress',
   };
 
   try {

@@ -31,8 +31,9 @@ const DiceRoll: React.FC = () => {
     return false;
   })();
 
+  console.log(isPlayerTurn)
+
   const handleRollDice = async () => {
-    console.log(gameState);
     try {
       const rolledDiceNumber = await rollAndRecordDice();
       const currentPlayer = gameState.currentTurn;
@@ -71,7 +72,7 @@ const DiceRoll: React.FC = () => {
   return (
     <div className="flex items-center gap-5">
       <button 
-        disabled={!isPlayerTurn}  // Disable the button if it's not the player's turn
+        disabled={!isPlayerTurn}
         className="bg-teal-500 text-white py-2 px-4 rounded-md disabled:bg-gray-300 disabled:text-gray-500"
         onClick={handleRollDice}
       >

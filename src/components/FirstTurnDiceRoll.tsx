@@ -21,6 +21,8 @@ const DiceRollToDetermineFirstTurn = () => {
       }
       return false;
     })();
+
+    console.log(hasPlayerRolled)
   
     const handleRollDice = async () => {
       if (hasPlayerRolled) {
@@ -39,7 +41,12 @@ const DiceRollToDetermineFirstTurn = () => {
   
     return (
       <div className="flex items-center gap-5">
-        <button className="bg-teal-500 text-white py-2 px-4 rounded-md disabled:bg-gray-300 disabled:text-gray-500" onClick={handleRollDice}>Roll Dice to determine first player</button>
+        <button
+          disabled={hasPlayerRolled} 
+          className="bg-teal-500 text-white py-2 px-4 rounded-md disabled:bg-gray-300 disabled:text-gray-500" 
+          onClick={handleRollDice}
+          >Roll Dice to determine first player
+        </button>
         <p>
         {rollNumber !== null
           ? `You rolled: ${rollNumber}`
