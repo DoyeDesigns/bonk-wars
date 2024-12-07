@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import useOnlineGameStore from '@/store/online-game-store';
 
 const DiceRoll: React.FC = () => {
@@ -8,9 +8,14 @@ const DiceRoll: React.FC = () => {
     useOnlineGameStore();
 
   const [rollNumber, setRollNumber] = useState(0);
+  const [telegramUserId, setTelegramUserId] = useState<number | null>(null);
 
-  // Assuming you are fetching the user's Telegram ID from the store/context
-  const telegramUserId = window.Telegram?.WebApp?.initDataUnsafe?.user;
+  useEffect(() => {
+    // Only run this on the client-side
+    if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+      setTelegramUserId(window.Telegram.WebApp.initDataUnsafe.user.id);
+    }
+  }, []);
 
   const handleRollDice = async () => {
     console.log(gameState);
@@ -49,7 +54,7 @@ const DiceRoll: React.FC = () => {
     }
   };
 
-  const isPlayerTurn = gameState?.currentTurn === (telegramUserId?.id === gameState?.player1?.id ? 'player1' : 'player2');
+  const isPlayerTurn = gameState?.currentTurn === (telegramUserId === gameState?.player1?.id ? 'player1' : 'player2');
 
   return (
     <div className="flex items-center gap-5">
