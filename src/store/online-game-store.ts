@@ -204,14 +204,8 @@ checkDiceRollsAndSetTurn: async () => {
 
   // Prepare updates for Firestore
   const updates = {
-    'gameState.player1': {
-      id: player1Id,
-    },
-    'gameState.player2': {
-      id: player2Id,
-    },
     'gameState.currentTurn': firstPlayer,
-    'gameState.status': 'inProgress',
+    'gameState.gamestatus': 'inProgress',
   };
 
   try {
@@ -256,7 +250,8 @@ checkDiceRollsAndSetTurn: async () => {
     [`players.${telegramUser.id}.characterId`]: characterId,
     [`gameState.${isPlayer1 ? 'player1' : 'player2'}.character`]: playerCharacter,
     [`gameState.${isPlayer1 ? 'player1' : 'player2'}.currentHealth`]: playerCharacter.baseHealth,
-    [`gameState.gameStatus`]: 'character-selected',
+    [`gameState.${isPlayer1 ? 'player1' : 'player2'}.id`]: telegramUser.id,
+    [`gameState.gameStatus`]: 'character-select',
   });
 
   try {
@@ -310,7 +305,7 @@ checkDiceRollsAndSetTurn: async () => {
       },
       'gameState.currentTurn': defendingPlayer,
       ...(gameState[defendingPlayer].currentHealth - incomingDamage <= 0 
-        ? { status: 'finished' } 
+        ? { gameStatus: 'finished' } 
         : {}),
     };
   
@@ -382,7 +377,7 @@ checkDiceRollsAndSetTurn: async () => {
         gameState[defendingPlayer].currentHealth - 
         (defenseType === 'block' ? Math.max(0, incomingDamage - 25) : 
          defenseType === 'dodge' ? 0 : incomingDamage) <= 0) {
-      updateData['status'] = 'finished';
+      updateData['gameStatus'] = 'finished';
     }
   
     try {

@@ -11,11 +11,25 @@ const DiceRoll: React.FC = () => {
   const [telegramUserId, setTelegramUserId] = useState<number | null>(null);
 
   useEffect(() => {
-    // Only run this on the client-side
     if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
       setTelegramUserId(window.Telegram.WebApp.initDataUnsafe.user.id);
     }
   }, []);
+
+  const isPlayerTurn = (() => {
+    // Check if game is in progress and both players have selected characters
+    if (gameState?.gameStatus !== 'inProgress') return false;
+
+    // Check if player1 or player2 ID matches the current user's ID
+    const isPlayer1 = gameState.player1?.id === telegramUserId;
+    const isPlayer2 = gameState.player2?.id === telegramUserId;
+
+    // Determine if it's this player's turn based on current turn and player role
+    if (isPlayer1 && gameState.currentTurn === 'player1') return true;
+    if (isPlayer2 && gameState.currentTurn === 'player2') return true;
+
+    return false;
+  })();
 
   const handleRollDice = async () => {
     console.log(gameState);
@@ -53,8 +67,6 @@ const DiceRoll: React.FC = () => {
       console.error('Error rolling dice:', error);
     }
   };
-
-  const isPlayerTurn = gameState?.currentTurn === (telegramUserId === gameState?.player1?.id ? 'player1' : 'player2');
 
   return (
     <div className="flex items-center gap-5">
