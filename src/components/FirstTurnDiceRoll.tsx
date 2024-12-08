@@ -5,7 +5,8 @@ import React, { useEffect, useState } from "react";
 
 const DiceRollToDetermineFirstTurn = () => {
     const { checkDiceRollsAndSetTurn, rollAndRecordDice, gameState } = useOnlineGameStore();
-    
+
+    const [rollNumber, setRollNumber] = useState<number | null>(null);
     const [telegramUserId, setTelegramUserId] = useState<number | null>(null);
 
     useEffect(() => {
@@ -29,7 +30,8 @@ const DiceRollToDetermineFirstTurn = () => {
       }
   
       try {
-        await rollAndRecordDice();
+        const rolledDiceNumber = await rollAndRecordDice();
+        setRollNumber(rolledDiceNumber);
         checkDiceRollsAndSetTurn();
       } catch (error) {
         console.error('Error rolling dice:', error);
@@ -44,7 +46,7 @@ const DiceRollToDetermineFirstTurn = () => {
           onClick={handleRollDice}
           >Roll Dice to determine first player
         </button>
-        <p> {gameState?.diceRolls?.[telegramUserId!]}</p>
+        <p>{gameState?.diceRolls?.[telegramUserId!]} || {rollNumber}</p>
       </div>
     );
   };
