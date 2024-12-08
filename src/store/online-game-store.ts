@@ -17,7 +17,7 @@ import { CHARACTERS, Character, Ability } from '@/lib/characters';
 import { Timestamp } from 'firebase/firestore';
 
 type UpdateData = {
-  [key: string]: number | string | null;
+  [key: string]: number | string | null | object;
 };
 
 // Define the structure of a player in the game room
@@ -143,22 +143,31 @@ const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
   },
 
   // In the store, add a method to roll and record dice rolls
-rollAndRecordDice: async () => {
-  const { roomId, playerTelegramId } = get();
-  if (!roomId || !playerTelegramId) {
-    throw new Error('No active game room');
-  }
-
-  const diceRoll = Math.floor(Math.random() * 6) + 1;
-  const roomRef = doc(db, 'gameRooms', roomId);
-
-  await updateDoc(roomRef, {
-    [`players.${playerTelegramId}.diceRoll`]: diceRoll,
-    [`gameState.diceRolls.${playerTelegramId}`]: diceRoll
-  });
-
-  return diceRoll;
-},
+  rollAndRecordDice: async () => {
+    const { roomId, playerTelegramId } = get();
+    if (!roomId || !playerTelegramId) {
+      throw new Error('No active game room');
+    }
+  
+    const diceRoll = Math.floor(Math.random() * 6) + 1;
+    const batch = writeBatch(db);
+    const roomRef = doc(db, 'gameRooms', roomId);
+  
+    batch.update(roomRef, {
+      [`players.${playerTelegramId}.diceRoll`]: diceRoll,
+      [`gameState.diceRolls.${playerTelegramId}`]: diceRoll
+    });
+  
+    try {
+      await batch.commit();
+      console.log('Dice roll recorded successfully');
+    } catch (error) {
+      console.error('Failed to record dice roll:', error);
+      throw error;
+    }
+  
+    return diceRoll;
+  },
 
 // Method to check if both players have rolled and determine first turn
 checkDiceRollsAndSetTurn: async () => {
@@ -202,15 +211,18 @@ checkDiceRollsAndSetTurn: async () => {
       ? 'player1'
       : 'player2';
 
+  const batch = writeBatch(db);
+
   // Prepare updates for Firestore
-  const updates = {
+  batch.update(roomRef, {
     'gameState.currentTurn': firstPlayer,
     'gameState.gameStatus': 'inProgress',
-  };
+    'status': 'inProgress',
+  });
 
   try {
-    // Perform a single Firestore update for efficiency
-    await updateDoc(roomRef, updates);
+    // Perform a single Firestore batch update
+    await batch.commit();
     console.log('Game state updated successfully.');
   } catch (error) {
     console.error('Failed to update game state:', error);
@@ -266,26 +278,31 @@ checkDiceRollsAndSetTurn: async () => {
 
   addDefenseToInventory: async (player, defenseType) => {
     const { roomId, gameState } = get();
+  
+    // Validate roomId
     if (!roomId) throw new Error('No active game room');
   
     const roomRef = doc(db, 'gameRooms', roomId);
     const nextPlayer = player === 'player1' ? 'player2' : 'player1';
   
-    // Prepare the update for Firestore
-    const updateData = {
-      [`gameState.${player}.defenseInventory.${defenseType}`]: 
-        (gameState[player].defenseInventory[defenseType] || 0) + 1,
+    // Initialize Firestore batch
+    const batch = writeBatch(db);
+  
+    // Prepare updates for the batch
+    const currentDefenseCount = gameState[player]?.defenseInventory?.[defenseType] || 0;
+  
+    batch.update(roomRef, {
+      [`gameState.${player}.defenseInventory.${defenseType}`]: currentDefenseCount + 1,
       'gameState.currentTurn': nextPlayer,
-    };
+    });
   
     try {
-      // Update backend first
-      await updateDoc(roomRef, updateData);
-  
-      // Local state update will be handled by the onSnapshot listener in init()
+      // Commit the batch
+      await batch.commit();
+      console.log(`Successfully added ${defenseType} to ${player}'s inventory.`);
     } catch (error) {
       console.error('Error adding defense to inventory:', error);
-      throw error;
+      throw new Error('Failed to add defense to inventory. Please try again.');
     }
   },
   
@@ -294,30 +311,30 @@ checkDiceRollsAndSetTurn: async () => {
     if (!roomId) throw new Error('No active game room');
   
     const roomRef = doc(db, 'gameRooms', roomId);
-  
-    // Prepare the update for Firestore
-    const updateData = {
+
+    const batch = writeBatch(db);
+    
+    batch.update(roomRef, {
       [`gameState.${defendingPlayer}.currentHealth`]: 
         gameState[defendingPlayer].currentHealth - incomingDamage,
       [`gameState.${defendingPlayer}.skippedDefense`]: {
         ability,
         damage: incomingDamage
       },
+      'gameState.lastAttack': { ability: null, attakingPlayer: null },
       'gameState.currentTurn': defendingPlayer,
       ...(gameState[defendingPlayer].currentHealth - incomingDamage <= 0 
         ? { gameStatus: 'finished' } 
         : {}),
-    };
-  
+    })
+
     try {
-      // Update backend first
-      await updateDoc(roomRef, updateData);
-  
-      // Local state update will be handled by the onSnapshot listener in init()
-    } catch (error) {
-      console.error('Error skipping defense:', error);
-      throw error;
-    }
+    await batch.commit();
+    console.log(`Defending player:${defendingPlayer} successfully took damage`);
+  } catch (error) {
+    console.error('Failed to take damage:', error);
+    throw new Error('Failed to process defense action. Please try again later.');
+  }
   },
   
   useDefense: async (defendingPlayer, defenseAbility, incomingDamage) => {
@@ -339,11 +356,14 @@ checkDiceRollsAndSetTurn: async () => {
   
     const roomRef = doc(db, 'gameRooms', roomId);
   
-    // Prepare the update for Firestore
+    const batch = writeBatch(db);
+  
+    // Prepare the update for Firestore batch
     const updateData: UpdateData = {
       [`gameState.${defendingPlayer}.defenseInventory.${defenseType}`]: 
         (gameState[defendingPlayer].defenseInventory[defenseType] || 1) - 1,
       [`gameState.${defendingPlayer}.skippedDefense`]: null,
+      'gameState.lastAttack': { ability: null, attakingPlayer: null },
     };
   
     // Apply defense-specific logic
@@ -381,8 +401,9 @@ checkDiceRollsAndSetTurn: async () => {
     }
   
     try {
-      // Update backend first
-      await updateDoc(roomRef, updateData);
+      // Update backend with batch write
+      batch.update(roomRef, updateData);
+      await batch.commit();
   
       // Local state update will be handled by the onSnapshot listener in init()
       return true;
@@ -399,20 +420,20 @@ checkDiceRollsAndSetTurn: async () => {
     const opponentKey = attackingPlayer === 'player1' ? 'player2' : 'player1';
     const roomRef = doc(db, 'gameRooms', roomId);
   
-    // Prepare the update for Firestore
-    const updateData = {
+    const batch = writeBatch(db);
+  
+    // Prepare the batch update for Firestore
+    batch.update(roomRef, {
       'gameState.currentTurn': opponentKey,
       'gameState.lastAttack': { 
         ability, 
         attackingPlayer 
       }
-    };
+    });
   
     try {
-      // Update backend first
-      await updateDoc(roomRef, updateData);
-  
-      // Local state update will be handled by the onSnapshot listener in init()
+      // Update backend with batch write
+      await batch.commit();
     } catch (error) {
       console.error('Error performing attack:', error);
       throw error;
@@ -463,9 +484,10 @@ checkDiceRollsAndSetTurn: async () => {
       throw new Error('Telegram user not found');
     }
 
+    const batch = writeBatch(db);
     const roomRef = doc(db, 'gameRooms', roomId);
-    
-    await updateDoc(roomRef, {
+   
+    batch.update(roomRef, {
       [`players.${telegramUser.id}`]: {
         telegramId: telegramUser.id,
         username: telegramUser.username,
@@ -475,11 +497,19 @@ checkDiceRollsAndSetTurn: async () => {
       status: 'character-select'
     });
 
-    set({ 
-      roomId, 
-      playerTelegramId: telegramUser.id 
+    try {
+      await batch.commit();
+      console.log('Successfully joined game room');
+    } catch (error) {
+      console.error('Failed to join game room:', error);
+      throw error;
+    }
+
+    set({
+      roomId,
+      playerTelegramId: telegramUser.id
     });
-  },
+},
 
   findOpenGameRoom: async () => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;

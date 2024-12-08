@@ -13,7 +13,7 @@ import { useToast } from '@/contexts/toast-context';
 
 interface LastAttackDetails {
   ability: Ability | null;
-  attackingPlayer: 'player1' | 'player2' | null;
+  attackingPlayer: 'player1' | 'player2' | null | undefined;
 }
 
 const GameComponent: React.FC = () => {
@@ -23,14 +23,11 @@ const GameComponent: React.FC = () => {
     createOnlineGameRoom,
     init,
     selectCharacters,
-    // performAttack,
-    // useDefense,
-    // skipDefense,
   } = useOnlineGameStore();
 
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [showSkipDefenseButton, setShowSkipDefenseButton] = useState(false);
-  const [lastAttackDetails, setLastAttackDetails] = useState<LastAttackDetails>({ ability: null, attackingPlayer: null });
+  const [lastAttackDetails, setLastAttackDetails] = useState<LastAttackDetails>({ ability: gameState?.lastAttack?.ability ?? null, attackingPlayer: gameState?.lastAttack?.attackingPlayer ?? null });
   const [showDefenseModal, setShowDefenseModal] = useState(false);
 
   const { addToast } = useToast()
@@ -83,7 +80,7 @@ const GameComponent: React.FC = () => {
     const incomingDamage = ability.value;
  
     if (defenseType === null) {
-      await useOnlineGameStore.getState().skipDefense(defendingPlayer, incomingDamage, ability);
+      useOnlineGameStore.getState().skipDefense(defendingPlayer, incomingDamage, ability);
       addToast(`${defendingPlayer} took ${incomingDamage} damage from ${ability.name}`, 'info');
     } else {
       const defenseAbility: Ability = {
@@ -155,34 +152,8 @@ const GameComponent: React.FC = () => {
     [roomId, selectCharacters, selectedCharacterId]
   );
 
-  // const handleAttack = async (ability: Ability) => {
-  //   try {
-  //     performAttack(gameState.currentTurn, ability);
-  //     addToast(`${gameState[gameState.currentTurn].character?.name} used ${ability.name}`, 'info');
-  //   } catch (error) {
-  //     addToast('Error performing attack', 'error');
-  //   }
-  // };
-
-  // const handleSkipDefense = useCallback(async () => {
-  //   const lastAttack = gameState.lastAttack;
-  //   if (lastAttack) {
-  //     try {
-  //       const defendingPlayer = gameState.currentTurn === 'player1' ? 'player2' : 'player1';
-  //       await skipDefense(
-  //         defendingPlayer, 
-  //         lastAttack.ability.value, 
-  //         lastAttack.ability
-  //       );
-  //       addToast(`${gameState[defendingPlayer].character?.name} skipped defense and took damage`, 'warning');
-  //     } catch (error) {
-  //       addToast('Error skipping defense', 'error');
-  //     }
-  //   }
-  // }, [gameState, skipDefense, addToast]);
-
   return (
-    <div className="bg-gradient-to-r from-pink-200 via-yellow-200 to-teal-200 h-full overflow-auto p-8 font-sans pb-[500px]">
+    <div className="bg-gradient-to-r from-pink-200 via-yellow-200 to-teal-200 h-full overflow-auto p-8 font-sans pb-[200px]">
       <h1 className="text-4xl font-bold text-center text-teal-800 mb-8">Online Battle Game</h1>
 
       {/* Room Management */}
@@ -268,22 +239,6 @@ const GameComponent: React.FC = () => {
           <DiceRoll />
         </div>
 
-        {/* Attack Buttons */}
-        {/* <div className="mb-4">
-          <h3 className="text-xl font-semibold text-teal-700">Attacks</h3>
-          <div className="space-x-4 space-y-2">
-            {gameState?.player1?.character?.abilities.map(ability => (
-              <button 
-                key={ability.name}
-                onClick={() => handleAttack(ability)}
-                disabled={gameState.currentTurn !== 'player1'}
-                className="bg-pink-300 text-teal-800 font-semibold py-2 px-4 rounded-md shadow-md disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-pink-400"
-              >
-                {ability.name}
-              </button>
-            ))}
-          </div>
-        </div> */}
       </div>
       {showDefenseModal && (
         <DefenseModal
@@ -293,7 +248,7 @@ const GameComponent: React.FC = () => {
             setShowSkipDefenseButton(false);
           }}
           onDefenseSelect={handleDefenseSelection}
-          showSkipButton={showSkipDefenseButton} // Pass this prop to the modal
+          showSkipButton={showSkipDefenseButton} 
         />
       )}
     </div>

@@ -51,6 +51,7 @@ const DiceRoll: React.FC = () => {
           if (ability.type === 'defense') {
             if (ability.defenseType) {
               addDefenseToInventory(currentPlayer, ability.defenseType);
+              addToast(`Added 1 ${ability.defenseType} to your inventory`);
             } else {
               console.error(
                 'Defense type is undefined for the given ability:',
