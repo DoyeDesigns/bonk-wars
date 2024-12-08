@@ -55,11 +55,10 @@ const GameComponent: React.FC = () => {
       gameState.lastAttack?.ability?.type === 'attack'
     ) {
 
-      const winner = useOnlineGameStore.getState().winner
-      if (winner !== null) {
-        setWinner(winner);
-        addToast(`${winner} has won the game`, 'info')
-        return
+      if (gameState.winner !== null) {
+        setWinner(gameState.winner);
+        addToast(`${gameState.winner} has won the game`, 'info');
+        return;
       }
 
       const attackingPlayer = gameState.lastAttack.attackingPlayer;

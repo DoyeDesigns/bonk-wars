@@ -39,7 +39,6 @@ export interface GameRoomDocument {
   };
   createdAt: Timestamp;
   gameState?: GameState; // Assuming GameState is defined in your existing types
-  winner: 'player1' | 'player2' | null;
 }
 
 // Recreate the GameState interface from the original file
@@ -70,6 +69,7 @@ interface GameState {
   };
   currentTurn: 'player1' | 'player2';
   gameStatus: 'waiting' | 'character-select' | 'inProgress' | 'finished';
+  winner: 'player1' | 'player2' | null;
   lastAttack?: {
     ability: Ability;
     attackingPlayer: 'player1' | 'player2';
@@ -106,7 +106,6 @@ interface OnlineGameStore {
   findOpenGameRoom: () => Promise<GameRoomDocument[] | null>;
   leaveGameRoom: () => Promise<void>;
   init: () => () => void;
-  winner: 'player1' | 'player2' | null;
 }
 
 const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
@@ -141,6 +140,7 @@ const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
     },
     currentTurn: 'player1',
     gameStatus: 'character-select',
+    winner: null
   },
 
   // In the store, add a method to roll and record dice rolls
@@ -312,33 +312,37 @@ checkDiceRollsAndSetTurn: async () => {
     if (!roomId) throw new Error('No active game room');
   
     const roomRef = doc(db, 'gameRooms', roomId);
-
     const batch = writeBatch(db);
-
-    const opponetPlayer = defendingPlayer === 'player1' ? 'player2' : 'player1'; 
+  
+    const opponentPlayer = defendingPlayer === 'player1' ? 'player2' : 'player1'; 
     
-    batch.update(roomRef, {
-      [`gameState.${defendingPlayer}.currentHealth`]: 
-        gameState[defendingPlayer].currentHealth - incomingDamage,
+    const updatedHealth = gameState[defendingPlayer].currentHealth - incomingDamage;
+  
+    const updateData: UpdateData = {
+      [`gameState.${defendingPlayer}.currentHealth`]: updatedHealth,
       [`gameState.${defendingPlayer}.skippedDefense`]: {
         ability,
         damage: incomingDamage
       },
-      'gameState.lastAttack': { ability: null, attakingPlayer: null },
+      'gameState.lastAttack': { ability: null, attackingPlayer: null },
       'gameState.currentTurn': defendingPlayer,
-      ...(gameState[defendingPlayer].currentHealth - incomingDamage <= 0 
-        ? { status: 'finished' } 
-        : {}),
-      'winner': [opponetPlayer]
-    })
-
+    };
+  
+    // Check if game is over
+    if (updatedHealth <= 0) {
+      updateData['gameState.gameStatus'] = 'finished';
+      updateData['status'] = 'finished';
+      updateData['gameState.winner'] = opponentPlayer;
+    }
+  
     try {
-    await batch.commit();
-    console.log(`Defending player:${defendingPlayer} successfully took damage`);
-  } catch (error) {
-    console.error('Failed to take damage:', error);
-    throw new Error('Failed to process defense action. Please try again later.');
-  }
+      batch.update(roomRef, updateData);
+      await batch.commit();
+      console.log(`Defending player: ${defendingPlayer} successfully took damage`);
+    } catch (error) {
+      console.error('Failed to take damage:', error);
+      throw new Error('Failed to process defense action. Please try again later.');
+    }
   },
   
   useDefense: async (defendingPlayer, defenseAbility, incomingDamage) => {
@@ -359,16 +363,25 @@ checkDiceRollsAndSetTurn: async () => {
     }
   
     const roomRef = doc(db, 'gameRooms', roomId);
-  
     const batch = writeBatch(db);
   
     // Prepare the update for Firestore batch
     const updateData: UpdateData = {
-      [`gameState.${defendingPlayer}.defenseInventory.${defenseType}`]: 
-        (gameState[defendingPlayer].defenseInventory[defenseType] || 1) - 1,
-      [`gameState.${defendingPlayer}.skippedDefense`]: null,
-      'gameState.lastAttack': { ability: null, attakingPlayer: null },
+      [`gameState.player1.defenseInventory.${defenseType}`]: 
+        defendingPlayer === 'player1' 
+          ? (gameState.player1.defenseInventory[defenseType] || 1) - 1 
+          : gameState.player1.defenseInventory[defenseType],
+      [`gameState.player2.defenseInventory.${defenseType}`]: 
+        defendingPlayer === 'player2' 
+          ? (gameState.player2.defenseInventory[defenseType] || 1) - 1 
+          : gameState.player2.defenseInventory[defenseType],
+      'gameState.lastAttack.ability': null,
+      'gameState.lastAttack.attackingPlayer': null,
+      [`gameState.${defendingPlayer}.skippedDefense`]: null
     };
+  
+    let defendingPlayerHealth = gameState[defendingPlayer].currentHealth;
+    let opponentPlayerHealth = gameState[opponentPlayer].currentHealth;
   
     // Apply defense-specific logic
     switch (defenseType) {
@@ -379,15 +392,16 @@ checkDiceRollsAndSetTurn: async () => {
   
       case 'reflect':
         // Reflect damage back to opponent
-        updateData[`gameState.${opponentPlayer}.currentHealth`] = 
-          gameState[opponentPlayer].currentHealth - incomingDamage;
+        opponentPlayerHealth -= incomingDamage;
+        updateData[`gameState.${opponentPlayer}.currentHealth`] = opponentPlayerHealth;
         updateData['gameState.currentTurn'] = opponentPlayer;
         break;
   
       case 'block':
         // Reduce incoming damage
-        updateData[`gameState.${defendingPlayer}.currentHealth`] = 
-          gameState[defendingPlayer].currentHealth - Math.max(0, incomingDamage - 25);
+        const blockedDamage = Math.max(0, incomingDamage - 25);
+        defendingPlayerHealth -= blockedDamage;
+        updateData[`gameState.${defendingPlayer}.currentHealth`] = defendingPlayerHealth;
         updateData['gameState.currentTurn'] = opponentPlayer;
         break;
   
@@ -396,14 +410,23 @@ checkDiceRollsAndSetTurn: async () => {
         return false;
     }
   
-    // Check if game is over
-    if (gameState[opponentPlayer].currentHealth - (defenseType === 'reflect' ? incomingDamage : 0) <= 0 ||
-        gameState[defendingPlayer].currentHealth - 
-        (defenseType === 'block' ? Math.max(0, incomingDamage - 25) : 
-         defenseType === 'dodge' ? 0 : incomingDamage) <= 0) {
-      updateData['gameState.gameStatus'] = 'finished';
+    // Comprehensive game over check
+    let winner: 'player1' | 'player2' | null = null;
+    let gameStatus: 'inProgress' | 'finished' = 'inProgress';
+  
+    if (opponentPlayerHealth <= 0) {
+      winner = defendingPlayer;
+      gameStatus = 'finished';
+    } else if (defendingPlayerHealth <= 0) {
+      winner = opponentPlayer;
+      gameStatus = 'finished';
+    }
+  
+    // Add game over updates if applicable
+    if (winner) {
+      updateData['gameState.gameStatus'] = gameStatus;
       updateData['status'] = 'finished';
-      updateData['winner'] = [opponentPlayer];
+      updateData['gameState.winner'] = winner;
     }
   
     try {
@@ -470,7 +493,6 @@ checkDiceRollsAndSetTurn: async () => {
       },
       createdAt: serverTimestamp(),
       gameState: null,
-      winner: null
     });
 
     set({ 
@@ -614,6 +636,7 @@ checkDiceRollsAndSetTurn: async () => {
         },
         currentTurn: 'player1',
         gameStatus: 'character-select',
+        winner: null,
       }
     }));
   },
@@ -643,7 +666,6 @@ checkDiceRollsAndSetTurn: async () => {
       const player2 = players[1];
  
       set((state) => ({
-        winner: roomData?.winner ?? state.winner,
         gameState: {
           ...state.gameState,
           player1: {
@@ -667,7 +689,8 @@ checkDiceRollsAndSetTurn: async () => {
           currentTurn: roomData.gameState?.currentTurn ?? state.gameState.currentTurn,
           gameStatus: roomData.gameState?.gameStatus ?? state.gameState.gameStatus,
           lastAttack: roomData.gameState?.lastAttack ?? state.gameState.lastAttack,
-          diceRolls: roomData.gameState?.diceRolls ?? state.gameState.diceRolls
+          diceRolls: roomData.gameState?.diceRolls ?? state.gameState.diceRolls,
+          winner: roomData.gameState?.winner ?? state.gameState.winner,
         },
         roomId,
       }));
