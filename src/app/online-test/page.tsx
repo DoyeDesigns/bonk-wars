@@ -20,7 +20,6 @@ const GameComponent: React.FC = () => {
   const {
     gameState,
     roomId,
-    playerTelegramId,
     createOnlineGameRoom,
     init,
     selectCharacters,
