@@ -46,7 +46,7 @@ const DiceRollToDetermineFirstTurn = () => {
           onClick={handleRollDice}
           >Roll Dice to determine first player
         </button>
-        <p> {gameState?.diceRolls?.[telegramUserId!] || rollNumber}</p>
+        <p> {gameState?.diceRolls?.[telegramUserId!]}</p>
       </div>
     );
   };

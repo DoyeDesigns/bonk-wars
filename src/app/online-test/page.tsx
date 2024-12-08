@@ -27,7 +27,7 @@ const GameComponent: React.FC = () => {
 
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [showSkipDefenseButton, setShowSkipDefenseButton] = useState(false);
-  const [lastAttackDetails, setLastAttackDetails] = useState<LastAttackDetails>({ ability: gameState?.lastAttack?.ability ?? null, attackingPlayer: gameState?.lastAttack?.attackingPlayer ?? null });
+  const [lastAttackDetails, setLastAttackDetails] = useState<LastAttackDetails>({ability: null, attackingPlayer: null});
   const [showDefenseModal, setShowDefenseModal] = useState(false);
   const [winner, setWinner] = useState<'player1' | 'player2' | null>(null)
 
@@ -54,6 +54,7 @@ const GameComponent: React.FC = () => {
       gameState.lastAttack !== null &&
       gameState.lastAttack?.ability?.type === 'attack'
     ) {
+      setLastAttackDetails(gameState.lastAttack);
 
       if (gameState.winner !== null) {
         setWinner(gameState.winner);
