@@ -70,7 +70,7 @@ const GameComponent: React.FC = () => {
       const hasDefenses = Object.values(defenseInventory).some((count) => count > 0);
 
       // Crucial change: Only show modal for the DEFENDING player
-      if (hasDefenses && gameState[defendingPlayer].id === playerTelegramId) {
+      if (hasDefenses) {
         setShowDefenseModal(true);
         setShowSkipDefenseButton(true);
       } else {
