@@ -29,6 +29,7 @@ const GameComponent: React.FC = () => {
   const [showSkipDefenseButton, setShowSkipDefenseButton] = useState(false);
   const [lastAttackDetails, setLastAttackDetails] = useState<LastAttackDetails>({ ability: gameState?.lastAttack?.ability ?? null, attackingPlayer: gameState?.lastAttack?.attackingPlayer ?? null });
   const [showDefenseModal, setShowDefenseModal] = useState(false);
+  const [winner, setWinner] = useState<'player1' | 'player2' | null>(null)
 
   const { addToast } = useToast()
 
@@ -53,6 +54,14 @@ const GameComponent: React.FC = () => {
       gameState.lastAttack !== null &&
       gameState.lastAttack?.ability?.type === 'attack'
     ) {
+
+      const winner = useOnlineGameStore.getState().winner
+      if (winner !== null) {
+        setWinner(winner);
+        addToast(`${winner} has won the game`, 'info')
+        return
+      }
+
       const attackingPlayer = gameState.lastAttack.attackingPlayer;
       const defendingPlayer = attackingPlayer === 'player1' ? 'player2' : 'player1';
       const defenseInventory = gameState[defendingPlayer].defenseInventory;
@@ -251,6 +260,9 @@ const GameComponent: React.FC = () => {
           showSkipButton={showSkipDefenseButton} 
         />
       )}
+      {
+        winner !== null && (<div className='absolute w-[200px] h-10 top-0 left-0'>{winner} has won the game</div>)
+      }
     </div>
   );
 };

@@ -39,6 +39,7 @@ export interface GameRoomDocument {
   };
   createdAt: Timestamp;
   gameState?: GameState; // Assuming GameState is defined in your existing types
+  winner: 'player1' | 'player2' | null;
 }
 
 // Recreate the GameState interface from the original file
@@ -105,10 +106,12 @@ interface OnlineGameStore {
   findOpenGameRoom: () => Promise<GameRoomDocument[] | null>;
   leaveGameRoom: () => Promise<void>;
   init: () => () => void;
+  winner: 'player1' | 'player2' | null;
 }
 
 const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
   roomId: null,
+  winner: null,
   setRoomId: (id: string) => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
     //   const telegramUser = {
@@ -116,8 +119,6 @@ const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
     //   username: 'doye',
     // };
     if (!telegramUser) return;
-
-    console.log('setting room id');
 
     set({ 
       roomId: id, 
@@ -313,6 +314,8 @@ checkDiceRollsAndSetTurn: async () => {
     const roomRef = doc(db, 'gameRooms', roomId);
 
     const batch = writeBatch(db);
+
+    const opponetPlayer = defendingPlayer === 'player1' ? 'player2' : 'player1'; 
     
     batch.update(roomRef, {
       [`gameState.${defendingPlayer}.currentHealth`]: 
@@ -324,8 +327,9 @@ checkDiceRollsAndSetTurn: async () => {
       'gameState.lastAttack': { ability: null, attakingPlayer: null },
       'gameState.currentTurn': defendingPlayer,
       ...(gameState[defendingPlayer].currentHealth - incomingDamage <= 0 
-        ? { gameStatus: 'finished' } 
+        ? { status: 'finished' } 
         : {}),
+      'winner': [opponetPlayer]
     })
 
     try {
@@ -397,7 +401,9 @@ checkDiceRollsAndSetTurn: async () => {
         gameState[defendingPlayer].currentHealth - 
         (defenseType === 'block' ? Math.max(0, incomingDamage - 25) : 
          defenseType === 'dodge' ? 0 : incomingDamage) <= 0) {
-      updateData['gameStatus'] = 'finished';
+      updateData['gameState.gameStatus'] = 'finished';
+      updateData['status'] = 'finished';
+      updateData['winner'] = [opponentPlayer];
     }
   
     try {
@@ -463,7 +469,8 @@ checkDiceRollsAndSetTurn: async () => {
         }
       },
       createdAt: serverTimestamp(),
-      gameState: null
+      gameState: null,
+      winner: null
     });
 
     set({ 
@@ -636,6 +643,7 @@ checkDiceRollsAndSetTurn: async () => {
       const player2 = players[1];
  
       set((state) => ({
+        winner: roomData?.winner ?? state.winner,
         gameState: {
           ...state.gameState,
           player1: {
