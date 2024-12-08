@@ -70,7 +70,7 @@ const GameComponent: React.FC = () => {
     } else {
       setShowDefenseModal(false);
     }
-  }, [gameState]);
+  }, [gameState, gameState.lastAttack]);
 
   const handleDefenseSelection = async (defenseType: string | null) => {
     const { ability, attackingPlayer } = lastAttackDetails;
