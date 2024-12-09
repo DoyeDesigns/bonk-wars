@@ -52,7 +52,8 @@ const GameComponent: React.FC = () => {
     if (
       gameState.gameStatus === 'inProgress' &&
       gameState.lastAttack !== null &&
-      gameState.lastAttack?.ability?.type === 'attack'
+      gameState.lastAttack?.ability?.type === 'attack' &&
+      gameState.lastAttack?.attackingPlayer
     ) {
       setLastAttackDetails(gameState.lastAttack);
   
@@ -64,11 +65,11 @@ const GameComponent: React.FC = () => {
       const attackingPlayer = gameState.lastAttack.attackingPlayer;
       const defendingPlayer = attackingPlayer === 'player1' ? 'player2' : 'player1';
       const defenseInventory = gameState[defendingPlayer]?.defenseInventory || {};
-  
+
       // Check if the defending player has any usable defenses
       const hasDefenses = Object.values(defenseInventory).some((count) => count > 0);
   
-      if (hasDefenses) {
+      if (hasDefenses && gameState.currentTurn === defendingPlayer) {
         setDefendingPlayer(defendingPlayer);
         setShowDefenseModal(true);
         setShowSkipDefenseButton(true);
