@@ -82,7 +82,8 @@ const GameComponent: React.FC = () => {
         setShowSkipDefenseButton(true);
       } else {
         // Automatically skip defense if no defenses are available
-        handleDefenseSelection(null);
+        // handleDefenseSelection(null);
+        console.log('hey you')
       }
     } else {
       setShowDefenseModal(false);
