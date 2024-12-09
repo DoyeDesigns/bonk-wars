@@ -67,15 +67,16 @@ const GameComponent: React.FC = () => {
   
       // Check if the defending player has any usable defenses
       const hasDefenses = Object.values(defenseInventory).some((count) => count > 0);
+
+        console.log('Defending Player useEffect:', defendingPlayer);
+        console.log('Current Turn useEffect:', gameState.currentTurn);
+        console.log('Show Defense Modal useEffect:', showDefenseModal);
+        console.log('Current turn useOnlineGameStore useEffect:', useOnlineGameStore.getState().gameState.currentTurn);
   
       if (hasDefenses) {
         setDefendingPlayer(defendingPlayer);
         setShowDefenseModal(true);
         setShowSkipDefenseButton(true);
-        console.log('Defending Player useEffect:', defendingPlayer);
-        console.log('Current Turn useEffect:', gameState.currentTurn);
-        console.log('Show Defense Modal useEffect:', showDefenseModal);
-        console.log('Current turn useOnlineGameStore useEffect:', useOnlineGameStore.getState().gameState.currentTurn);
       } else {
         // Automatically skip defense if no defenses are available
         handleDefenseSelection(null);
@@ -253,8 +254,7 @@ const GameComponent: React.FC = () => {
         </div>
 
       </div>
-      {showDefenseModal && defendingPlayer === useOnlineGameStore.getState().gameState.currentTurn && (
-        
+      {showDefenseModal && defendingPlayer === 'player1' && (
         <DefenseModal
           player={defendingPlayer as 'player1' | 'player2'}
           onClose={() => setShowDefenseModal(false)}
