@@ -41,8 +41,6 @@ const availableDefenses = Object.entries(defenseInventory)
     );
   };
 
-  const attackingPlayer = player === 'player1' ? 'player2' : 'player1';
-
   if (gameState.currentTurn !== player) {
     return null;
   }
