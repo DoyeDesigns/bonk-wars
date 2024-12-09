@@ -74,6 +74,10 @@ const GameComponent: React.FC = () => {
         setDefendingPlayer(defendingPlayer);
         setShowDefenseModal(true);
         setShowSkipDefenseButton(true);
+        console.log('Defending Player useEffect:', defendingPlayer);
+        console.log('Current Turn useEffect:', gameState.currentTurn);
+        console.log('Show Defense Modal useEffect:', showDefenseModal);
+        console.log('Current turn useOnlineGameStore useEffect:', useOnlineGameStore.getState().gameState.currentTurn);
       } else {
         // Automatically skip defense if no defenses are available
         handleDefenseSelection(null);
@@ -251,7 +255,8 @@ const GameComponent: React.FC = () => {
         </div>
 
       </div>
-      {showDefenseModal && defendingPlayer === gameState.currentTurn && (
+      {showDefenseModal && defendingPlayer === useOnlineGameStore.getState().gameState.currentTurn && (
+        
         <DefenseModal
           player={defendingPlayer as 'player1' | 'player2'}
           onClose={() => setShowDefenseModal(false)}
@@ -259,9 +264,6 @@ const GameComponent: React.FC = () => {
           showSkipButton={showSkipDefenseButton}
         />
       )}
-      {
-        winner !== null && (<div className='absolute w-[200px] h-10 top-0 left-0'>{winner} has won the game</div>)
-      }
     </div>
   );
 };
