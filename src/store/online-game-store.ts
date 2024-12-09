@@ -224,6 +224,7 @@ checkDiceRollsAndSetTurn: async () => {
     // Perform a single Firestore batch update
     await batch.commit();
     console.log('Game state updated successfully.');
+    console.log(`Initial Turn Set: ${firstPlayer} (Dice Rolls: ${playerRoles.player1.roll} vs ${playerRoles.player2.roll})`);
   } catch (error) {
     console.error('Failed to update game state:', error);
   }
@@ -338,6 +339,7 @@ checkDiceRollsAndSetTurn: async () => {
       batch.update(roomRef, updateData);
       await batch.commit();
       console.log(`Defending player: ${defendingPlayer} successfully took damage`);
+      console.log(`Turn after Skip Defense: ${defendingPlayer} (Damage: ${incomingDamage}, Ability: ${ability})`);
     } catch (error) {
       console.error('Failed to take damage:', error);
       throw new Error('Failed to process defense action. Please try again later.');
@@ -408,7 +410,11 @@ checkDiceRollsAndSetTurn: async () => {
       const batch = writeBatch(db);
       batch.update(roomRef, updateData);
       await batch.commit();
- 
+      console.log(`Turn Change for ${defenseType} Defense: 
+        Defending Player: ${defendingPlayer}
+        Opponent: ${opponentPlayer}
+        New Turn: ${updateData['gameState.currentTurn']}
+        Damage: ${incomingDamage}`);
       return true;
     } catch (error) {
       console.error('Error using defense:', error);
