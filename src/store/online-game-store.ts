@@ -347,73 +347,72 @@ checkDiceRollsAndSetTurn: async () => {
   useDefense: async (defendingPlayer, defenseAbility, incomingDamage) => {
     const { roomId, gameState } = get();
     if (!roomId) throw new Error('No active game room');
- 
+  
     if (!defenseAbility?.defenseType) {
       console.error('Invalid defense ability provided');
       return false;
     }
- 
+  
     const opponentPlayer = defendingPlayer === 'player1' ? 'player2' : 'player1';
     const defenseType = defenseAbility.defenseType;
- 
-    // Ensure defense inventory exists and has a default value
-    const defendingPlayerDefenseInventory = gameState[defendingPlayer].defenseInventory || {
-      dodge: 0,
-      block: 0,
-      reflect: 0
-    };
-
+  
     // Check if defense is available in inventory
-    if ((defendingPlayerDefenseInventory[defenseType] || 0) <= 0) {
+    if ((gameState[defendingPlayer].defenseInventory[defenseType] || 0) <= 0) {
       return false;
     }
- 
+  
     const roomRef = doc(db, 'gameRooms', roomId);
     const batch = writeBatch(db);
- 
-    // Prepare the update for Firestore batch with safe default values
+  
+    // Prepare the update for Firestore batch
     const updateData: UpdateData = {
-      [`gameState.${defendingPlayer}.defenseInventory.${defenseType}`]: 
-        Math.max(0, (defendingPlayerDefenseInventory[defenseType] || 0) - 1),
+      [`gameState.player1.defenseInventory.${defenseType}`]: 
+        defendingPlayer === 'player1' 
+          ? (gameState.player1.defenseInventory[defenseType] || 1) - 1 
+          : gameState.player1.defenseInventory[defenseType],
+      [`gameState.player2.defenseInventory.${defenseType}`]: 
+        defendingPlayer === 'player2' 
+          ? (gameState.player2.defenseInventory[defenseType] || 1) - 1 
+          : gameState.player2.defenseInventory[defenseType],
       'gameState.lastAttack.ability': null,
       'gameState.lastAttack.attackingPlayer': null,
       [`gameState.${defendingPlayer}.skippedDefense`]: null
     };
- 
+  
     let defendingPlayerHealth = gameState[defendingPlayer].currentHealth;
     let opponentPlayerHealth = gameState[opponentPlayer].currentHealth;
- 
+  
     // Apply defense-specific logic
     switch (defenseType) {
       case 'dodge':
         // No damage, keep current turn
         updateData['gameState.currentTurn'] = defendingPlayer;
         break;
- 
+  
       case 'reflect':
         // Reflect damage back to opponent
         opponentPlayerHealth -= incomingDamage;
-        updateData[`gameState.${opponentPlayer}.currentHealth`] = Math.max(0, opponentPlayerHealth);
+        updateData[`gameState.${opponentPlayer}.currentHealth`] = opponentPlayerHealth;
         updateData['gameState.currentTurn'] = opponentPlayer;
         break;
- 
+  
       case 'block':
         // Reduce incoming damage
         const blockedDamage = Math.max(0, incomingDamage - 25);
         defendingPlayerHealth -= blockedDamage;
-        updateData[`gameState.${defendingPlayer}.currentHealth`] = Math.max(0, defendingPlayerHealth);
+        updateData[`gameState.${defendingPlayer}.currentHealth`] = defendingPlayerHealth;
         updateData['gameState.currentTurn'] = opponentPlayer;
         break;
- 
+  
       default:
         console.error('Unknown defense type');
         return false;
     }
- 
+  
     // Comprehensive game over check
     let winner: 'player1' | 'player2' | null = null;
     let gameStatus: 'inProgress' | 'finished' = 'inProgress';
- 
+  
     if (opponentPlayerHealth <= 0) {
       winner = defendingPlayer;
       gameStatus = 'finished';
@@ -421,19 +420,19 @@ checkDiceRollsAndSetTurn: async () => {
       winner = opponentPlayer;
       gameStatus = 'finished';
     }
- 
+  
     // Add game over updates if applicable
     if (winner) {
       updateData['gameState.gameStatus'] = gameStatus;
       updateData['status'] = 'finished';
       updateData['gameState.winner'] = winner;
     }
- 
+  
     try {
       // Update backend with batch write
       batch.update(roomRef, updateData);
       await batch.commit();
- 
+  
       // Local state update will be handled by the onSnapshot listener in init()
       return true;
     } catch (error) {
