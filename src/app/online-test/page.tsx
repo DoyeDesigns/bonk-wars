@@ -29,7 +29,6 @@ const GameComponent: React.FC = () => {
   const [showSkipDefenseButton, setShowSkipDefenseButton] = useState(false);
   const [lastAttackDetails, setLastAttackDetails] = useState<LastAttackDetails>({ability: null, attackingPlayer: null});
   const [showDefenseModal, setShowDefenseModal] = useState(false);
-  const [winner, setWinner] = useState<'player1' | 'player2' | null>(null);
   const [defendingPlayer, setDefendingPlayer] = useState('')
 
   const { addToast } = useToast()
@@ -58,7 +57,6 @@ const GameComponent: React.FC = () => {
       setLastAttackDetails(gameState.lastAttack);
   
       if (gameState.winner !== null) {
-        setWinner(gameState.winner);
         addToast(`${gameState.winner} has won the game`, 'info');
         return;
       }
