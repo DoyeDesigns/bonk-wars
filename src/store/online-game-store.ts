@@ -347,93 +347,68 @@ checkDiceRollsAndSetTurn: async () => {
   useDefense: async (defendingPlayer, defenseAbility, incomingDamage) => {
     const { roomId, gameState } = get();
     if (!roomId) throw new Error('No active game room');
-  
+ 
     if (!defenseAbility?.defenseType) {
       console.error('Invalid defense ability provided');
       return false;
     }
-  
+ 
     const opponentPlayer = defendingPlayer === 'player1' ? 'player2' : 'player1';
     const defenseType = defenseAbility.defenseType;
-  
+ 
     // Check if defense is available in inventory
     if ((gameState[defendingPlayer].defenseInventory[defenseType] || 0) <= 0) {
       return false;
     }
-  
+ 
     const roomRef = doc(db, 'gameRooms', roomId);
-    const batch = writeBatch(db);
-  
-    // Prepare the update for Firestore batch
+ 
     const updateData: UpdateData = {
-      [`gameState.player1.defenseInventory.${defenseType}`]: 
-        defendingPlayer === 'player1' 
-          ? (gameState.player1.defenseInventory[defenseType] || 1) - 1 
-          : gameState.player1.defenseInventory[defenseType],
-      [`gameState.player2.defenseInventory.${defenseType}`]: 
-        defendingPlayer === 'player2' 
-          ? (gameState.player2.defenseInventory[defenseType] || 1) - 1 
-          : gameState.player2.defenseInventory[defenseType],
-      'gameState.lastAttack.ability': null,
-      'gameState.lastAttack.attackingPlayer': null,
-      [`gameState.${defendingPlayer}.skippedDefense`]: null
+      [`gameState.${defendingPlayer}.defenseInventory.${defenseType}`]:
+        (gameState[defendingPlayer].defenseInventory[defenseType] || 1) - 1,
+      [`gameState.${defendingPlayer}.skippedDefense`]: null,
+      'gameState.lastAttack': { ability: null, attackingPlayer: null },
     };
-  
-    let defendingPlayerHealth = gameState[defendingPlayer].currentHealth;
-    let opponentPlayerHealth = gameState[opponentPlayer].currentHealth;
-  
+ 
     // Apply defense-specific logic
     switch (defenseType) {
       case 'dodge':
         // No damage, keep current turn
         updateData['gameState.currentTurn'] = defendingPlayer;
         break;
-  
+ 
       case 'reflect':
         // Reflect damage back to opponent
-        opponentPlayerHealth -= incomingDamage;
-        updateData[`gameState.${opponentPlayer}.currentHealth`] = opponentPlayerHealth;
+        updateData[`gameState.${opponentPlayer}.currentHealth`] =
+          gameState[opponentPlayer].currentHealth - incomingDamage;
         updateData['gameState.currentTurn'] = opponentPlayer;
         break;
-  
+ 
       case 'block':
         // Reduce incoming damage
-        const blockedDamage = Math.max(0, incomingDamage - 25);
-        defendingPlayerHealth -= blockedDamage;
-        updateData[`gameState.${defendingPlayer}.currentHealth`] = defendingPlayerHealth;
+        updateData[`gameState.${defendingPlayer}.currentHealth`] =
+          gameState[defendingPlayer].currentHealth - Math.max(0, incomingDamage - 25);
         updateData['gameState.currentTurn'] = opponentPlayer;
         break;
-  
+ 
       default:
         console.error('Unknown defense type');
         return false;
     }
-  
-    // Comprehensive game over check
-    let winner: 'player1' | 'player2' | null = null;
-    let gameStatus: 'inProgress' | 'finished' = 'inProgress';
-  
-    if (opponentPlayerHealth <= 0) {
-      winner = defendingPlayer;
-      gameStatus = 'finished';
-    } else if (defendingPlayerHealth <= 0) {
-      winner = opponentPlayer;
-      gameStatus = 'finished';
+ 
+    // Check if game is over
+    if (gameState[opponentPlayer].currentHealth - (defenseType === 'reflect' ? incomingDamage : 0) <= 0 ||
+        gameState[defendingPlayer].currentHealth -
+        (defenseType === 'block' ? Math.max(0, incomingDamage - 25) :
+         defenseType === 'dodge' ? 0 : incomingDamage) <= 0) {
+      updateData['gameStatus'] = 'finished';
     }
-  
-    // Add game over updates if applicable
-    if (winner) {
-      updateData['gameState.gameStatus'] = gameStatus;
-      updateData['status'] = 'finished';
-      updateData['gameState.winner'] = winner;
-    }
-  
+ 
     try {
-      // Update backend with batch write
+      const batch = writeBatch(db);
       batch.update(roomRef, updateData);
       await batch.commit();
-  
-      // Local state update will be handled by the onSnapshot listener in init()
+ 
       return true;
     } catch (error) {
       console.error('Error using defense:', error);
@@ -575,7 +550,7 @@ checkDiceRollsAndSetTurn: async () => {
   findUserRooms: async () => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
     // const telegramUser = {
-    //   id: 5532711018, 
+    //   id: 6761460629, 
     // };
   
     if (!telegramUser) {
@@ -644,86 +619,6 @@ checkDiceRollsAndSetTurn: async () => {
     }));
   },
 
-  // init: () => {
-  //   const { roomId } = get(); 
-  //   const telegramUser = {id: 6761460629};
-  //   // const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-  
-  //   if (!roomId || !telegramUser?.id) {
-  //     console.error("Room ID or Player Telegram ID is missing.");
-  //     return () => {}; 
-  //   }
-   
-  //   const roomRef = doc(db, 'gameRooms', roomId);
-   
-  //   const unsubscribe = onSnapshot(roomRef, (snapshot) => {
-  //     const roomData = snapshot.data() as GameRoomDocument;
-   
-  //     if (!roomData) {
-  //       console.warn("Room data does not exist.");
-  //       return;
-  //     }
-  
-  //     // More type-safe player extraction
-  //     const playerIds = Object.keys(roomData.players || {})
-  //       .map(id => Number(id))
-  //       .filter(id => !isNaN(id));
-  
-  //     const player1TelegramId = playerIds[0];
-  //     const player2TelegramId = playerIds[1];
-  
-  //     set((state) => {
-  //       const updatedGameState: GameState = {
-  //         ...state.gameState,
-  //         player1: {
-  //           ...state.gameState.player1,
-  //           id: player1TelegramId ?? state.gameState.player1.id,
-  //           character: player1TelegramId
-  //             ? CHARACTERS.find(
-  //                 c => c.id === roomData.players[player1TelegramId]?.characterId
-  //               ) 
-  //             : state.gameState.player1.character,
-  //           currentHealth: roomData.gameState?.player1?.currentHealth 
-  //             ?? state.gameState.player1.currentHealth,
-  //           defenseInventory: roomData.gameState?.player1?.defenseInventory 
-  //             ?? state.gameState.player1.defenseInventory,
-  //         },
-  //         player2: {
-  //           ...state.gameState.player2,
-  //           id: player2TelegramId ?? state.gameState.player2.id,
-  //           character: player2TelegramId
-  //             ? CHARACTERS.find(
-  //                 c => c.id === roomData.players[player2TelegramId]?.characterId
-  //               ) 
-  //             : state.gameState.player2.character,
-  //           currentHealth: roomData.gameState?.player2?.currentHealth 
-  //             ?? state.gameState.player2.currentHealth,
-  //           defenseInventory: roomData.gameState?.player2?.defenseInventory 
-  //             ?? state.gameState.player2.defenseInventory,
-  //         },
-  //         currentTurn: roomData.gameState?.currentTurn 
-  //           ?? state.gameState.currentTurn,
-  //         gameStatus: roomData.gameState?.gameStatus 
-  //           ?? state.gameState.gameStatus,
-  //         winner: roomData.gameState?.winner 
-  //           ?? state.gameState.winner,
-  //         lastAttack: roomData.gameState?.lastAttack 
-  //           ?? state.gameState.lastAttack,
-  //         diceRolls: roomData.gameState?.diceRolls 
-  //           ?? state.gameState.diceRolls,
-  //       };
-  
-  //       console.log('Updating game state:', updatedGameState);
-  
-  //       return {
-  //         gameState: updatedGameState,
-  //         roomId,
-  //       };
-  //     });
-  //   });
-  
-  //   return unsubscribe;
-  // }
   init: () => {
     const { roomId } = get(); 
     // const telegramUser = {id: 6761460629};

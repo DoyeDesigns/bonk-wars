@@ -29,7 +29,8 @@ const GameComponent: React.FC = () => {
   const [showSkipDefenseButton, setShowSkipDefenseButton] = useState(false);
   const [lastAttackDetails, setLastAttackDetails] = useState<LastAttackDetails>({ability: null, attackingPlayer: null});
   const [showDefenseModal, setShowDefenseModal] = useState(false);
-  const [winner, setWinner] = useState<'player1' | 'player2' | null>(null)
+  const [winner, setWinner] = useState<'player1' | 'player2' | null>(null);
+  const [defendingPlayer, setDefendingPlayer] = useState('')
 
   const { addToast } = useToast()
 
@@ -70,6 +71,7 @@ const GameComponent: React.FC = () => {
       const hasDefenses = Object.values(defenseInventory).some((count) => count > 0);
   
       if (hasDefenses) {
+        setDefendingPlayer(defendingPlayer);
         setShowDefenseModal(true);
         setShowSkipDefenseButton(true);
       } else {
@@ -249,15 +251,12 @@ const GameComponent: React.FC = () => {
         </div>
 
       </div>
-      {showDefenseModal && (
+      {showDefenseModal && ['player1', 'player2'].includes(defendingPlayer) && (
         <DefenseModal
-          player={lastAttackDetails.attackingPlayer === 'player1' ? 'player2' : 'player1'}
-          onClose={() => {
-            setShowDefenseModal(false);
-            setShowSkipDefenseButton(false);
-          }}
+          player={defendingPlayer as 'player1' | 'player2'}
+          onClose={() => setShowDefenseModal(false)}
           onDefenseSelect={handleDefenseSelection}
-          showSkipButton={showSkipDefenseButton} 
+          showSkipButton={showSkipDefenseButton}
         />
       )}
       {
