@@ -1,6 +1,6 @@
 'use client'
 import React from 'react';
-import useOnlineGameStore from '@/store/online-game-store'; // Updated import
+import useOnlineGameStore from '@/store/online-game-store'; 
 
 interface DefenseModalProps {
   player: 'player1' | 'player2';
@@ -18,9 +18,14 @@ const DefenseModal: React.FC<DefenseModalProps> = ({
   const gameState = useOnlineGameStore((state) => state.gameState);
   const defenseInventory = gameState[player]?.defenseInventory || {};
 
-  const availableDefenses = Object.entries(defenseInventory).filter(
-    ([_, count]) => count > 0
-  );
+  const validDefenseTypes = ['dodge', 'reflect', 'block'] as const;
+type ValidDefenseType = typeof validDefenseTypes[number];
+
+const availableDefenses = Object.entries(defenseInventory)
+  .filter((entry): entry is [ValidDefenseType, number] => {
+    const [defenseType, count] = entry;
+    return validDefenseTypes.includes(defenseType as ValidDefenseType) && count > 0;
+  });
 
   const renderDefenseButton = (defenseType: string) => {
     const count = defenseInventory[defenseType] || 0;
