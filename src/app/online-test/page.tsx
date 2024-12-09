@@ -66,10 +66,17 @@ const GameComponent: React.FC = () => {
       const defendingPlayer = attackingPlayer === 'player1' ? 'player2' : 'player1';
       const defenseInventory = gameState[defendingPlayer]?.defenseInventory || {};
 
+      console.log('Defense Evaluation', {
+        attackingPlayer,
+        defendingPlayer,
+        currentTurn: gameState.currentTurn,
+        defenseInventory: gameState[defendingPlayer]?.defenseInventory
+      });
+
       // Check if the defending player has any usable defenses
       const hasDefenses = Object.values(defenseInventory).some((count) => count > 0);
   
-      if (hasDefenses && gameState.currentTurn === defendingPlayer) {
+      if (hasDefenses && gameState.currentTurn !== attackingPlayer) {
         setDefendingPlayer(defendingPlayer);
         setShowDefenseModal(true);
         setShowSkipDefenseButton(true);
@@ -80,7 +87,7 @@ const GameComponent: React.FC = () => {
     } else {
       setShowDefenseModal(false);
     }
-  }, [gameState, gameState.lastAttack]);
+  }, [gameState]);
 
   const handleDefenseSelection = async (defenseType: string | null) => {
     const { ability, attackingPlayer } = lastAttackDetails;
