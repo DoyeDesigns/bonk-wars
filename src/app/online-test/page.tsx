@@ -55,25 +55,25 @@ const GameComponent: React.FC = () => {
       gameState.lastAttack?.ability?.type === 'attack'
     ) {
       setLastAttackDetails(gameState.lastAttack);
-
+  
       if (gameState.winner !== null) {
         setWinner(gameState.winner);
         addToast(`${gameState.winner} has won the game`, 'info');
         return;
       }
-
+  
       const attackingPlayer = gameState.lastAttack.attackingPlayer;
       const defendingPlayer = attackingPlayer === 'player1' ? 'player2' : 'player1';
-      const defenseInventory = gameState[defendingPlayer].defenseInventory;
-
+      const defenseInventory = gameState[defendingPlayer]?.defenseInventory || {};
+  
+      // Check if the defending player has any usable defenses
       const hasDefenses = Object.values(defenseInventory).some((count) => count > 0);
-
-      // Crucial change: Only show modal for the DEFENDING player
+  
       if (hasDefenses) {
         setShowDefenseModal(true);
         setShowSkipDefenseButton(true);
       } else {
-        // If no defenses, automatically skip defense
+        // Automatically skip defense if no defenses are available
         handleDefenseSelection(null);
       }
     } else {

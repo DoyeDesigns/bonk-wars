@@ -13,15 +13,17 @@ const DefenseModal: React.FC<DefenseModalProps> = ({
   player,
   onClose,
   onDefenseSelect,
-  showSkipButton = false
+  showSkipButton = false,
 }) => {
-  const gameState = useOnlineGameStore(state => state.gameState);
+  const gameState = useOnlineGameStore((state) => state.gameState);
   const defenseInventory = gameState[player]?.defenseInventory || {};
+
+  const availableDefenses = Object.entries(defenseInventory).filter(
+    ([_, count]) => count > 0
+  );
 
   const renderDefenseButton = (defenseType: string) => {
     const count = defenseInventory[defenseType] || 0;
-   
-    if (count <= 0) return null;
     return (
       <button
         key={defenseType}
@@ -40,10 +42,17 @@ const DefenseModal: React.FC<DefenseModalProps> = ({
         <h2 className="text-xl font-bold mb-4">
           {player === 'player1' ? 'Player 1' : 'Player 2'} Defense Options
         </h2>
-       
-        <div className="mb-4">
-          {['dodge', 'block', 'reflect'].map(renderDefenseButton)}
-        </div>
+
+        {availableDefenses.length > 0 ? (
+          <div className="mb-4">
+            {availableDefenses.map(([defenseType]) =>
+              renderDefenseButton(defenseType)
+            )}
+          </div>
+        ) : (
+          <p className="text-gray-700">No defenses available.</p>
+        )}
+
         {showSkipButton && (
           <button
             onClick={() => onDefenseSelect(null)}
@@ -52,15 +61,17 @@ const DefenseModal: React.FC<DefenseModalProps> = ({
             Skip Defense (Take Damage)
           </button>
         )}
+
         <button
           onClick={onClose}
-          className="mt-4 w-full bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
+          className="mt-4 bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
         >
-          Cancel
+          Close
         </button>
       </div>
     </div>
   );
 };
+
 
 export default DefenseModal;
