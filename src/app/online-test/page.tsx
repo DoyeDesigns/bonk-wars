@@ -251,7 +251,7 @@ const GameComponent: React.FC = () => {
         </div>
 
       </div>
-      {showDefenseModal && ['player1', 'player2'].includes(defendingPlayer) && (
+      {showDefenseModal && defendingPlayer === gameState.currentTurn && (
         <DefenseModal
           player={defendingPlayer as 'player1' | 'player2'}
           onClose={() => setShowDefenseModal(false)}
