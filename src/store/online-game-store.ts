@@ -95,6 +95,11 @@ interface OnlineGameStore {
     incomingDamage: number
   ) => Promise<boolean>;
   addDefenseToInventory: (player: 'player1' | 'player2', defenseType: string) => void;
+  takeDamage: (
+    defendingPlayer: 'player1' | 'player2', 
+    incomingDamage: number, 
+    ability: Ability
+  ) => void;
   skipDefense: (
     defendingPlayer: 'player1' | 'player2', 
     incomingDamage: number, 
@@ -304,6 +309,45 @@ checkDiceRollsAndSetTurn: async () => {
     } catch (error) {
       console.error('Error adding defense to inventory:', error);
       throw new Error('Failed to add defense to inventory. Please try again.');
+    }
+  },
+
+  takeDamage: async (defendingPlayer, incomingDamage, ability) => {
+    const { roomId, gameState } = get();
+    if (!roomId) throw new Error('No active game room');
+  
+    const roomRef = doc(db, 'gameRooms', roomId);
+    const batch = writeBatch(db);
+  
+    const opponentPlayer = defendingPlayer === 'player1' ? 'player2' : 'player1'; 
+    
+    const updatedHealth = gameState[defendingPlayer].currentHealth - incomingDamage;
+  
+    const updateData: UpdateData = {
+      [`gameState.${defendingPlayer}.currentHealth`]: updatedHealth,
+      [`gameState.${defendingPlayer}.skippedDefense`]: {
+        ability,
+        damage: incomingDamage
+      },
+      'gameState.lastAttack': { ability: null, attackingPlayer: null },
+      'gameState.currentTurn': opponentPlayer,
+    };
+  
+    // Check if game is over
+    if (updatedHealth <= 0) {
+      updateData['gameState.gameStatus'] = 'finished';
+      updateData['status'] = 'finished';
+      updateData['gameState.winner'] = opponentPlayer;
+    }
+  
+    try {
+      batch.update(roomRef, updateData);
+      await batch.commit();
+      console.log(`Defending player: ${defendingPlayer} successfully took damage`);
+      console.log(`Turn after Skip Defense: ${defendingPlayer} (Damage: ${incomingDamage}, Ability: ${ability})`);
+    } catch (error) {
+      console.error('Failed to take damage:', error);
+      throw new Error('Failed to process defense action. Please try again later.');
     }
   },
   

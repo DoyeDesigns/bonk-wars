@@ -55,40 +55,38 @@ const GameComponent: React.FC = () => {
       gameState.lastAttack?.ability?.type === 'attack' &&
       gameState.lastAttack?.attackingPlayer
     ) {
+      
       setLastAttackDetails(gameState.lastAttack);
+
+      setShowDefenseModal(false);
+      setShowSkipDefenseButton(false);
   
       if (gameState.winner !== null) {
         addToast(`${gameState.winner} has won the game`, 'info');
         return;
       }
-  
+
+      const telegramUserId = window.Telegram?.WebApp?.initDataUnsafe?.user
       const attackingPlayer = gameState.lastAttack.attackingPlayer;
       const defendingPlayer = attackingPlayer === 'player1' ? 'player2' : 'player1';
-      const defenseInventory = gameState[defendingPlayer]?.defenseInventory || {};
 
-      console.log('Defense Evaluation', {
-        attackingPlayer,
-        defendingPlayer,
-        currentTurn: gameState.currentTurn,
-        defenseInventory: gameState[defendingPlayer]?.defenseInventory
-      });
-
-      // Check if the defending player has any usable defenses
-      const hasDefenses = Object.values(defenseInventory).some((count) => count > 0);
+      if (telegramUserId?.id === gameState[defendingPlayer]?.id) {
+        const defenseInventory = gameState[defendingPlayer]?.defenseInventory || {};
+        const hasDefenses = Object.values(defenseInventory).some((count) => count > 0);
   
-      if (hasDefenses && gameState.currentTurn !== attackingPlayer) {
-        setDefendingPlayer(defendingPlayer);
-        setShowDefenseModal(true);
-        setShowSkipDefenseButton(true);
-      } else {
-        // Automatically skip defense if no defenses are available
-        // handleDefenseSelection(null);
-        console.log('hey you')
+        if (hasDefenses) {
+          setDefendingPlayer(defendingPlayer);
+          setShowDefenseModal(true);
+          setShowSkipDefenseButton(true);
+        } else {
+          // Automatically skip defense if no defenses are available
+          useOnlineGameStore.getState().takeDamage(defendingPlayer, gameState.lastAttack.ability.value, gameState.lastAttack.ability )
+        }
       }
     } else {
       setShowDefenseModal(false);
     }
-  }, [gameState]);
+  }, [gameState.lastAttack, gameState.gameStatus]);
 
   const handleDefenseSelection = async (defenseType: string | null) => {
     const { ability, attackingPlayer } = lastAttackDetails;
