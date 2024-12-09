@@ -29,17 +29,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <ToastProvider>
-      <TelegramProvider >
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen`}
       >
+      <ToastProvider>
+        <TelegramProvider >
         {children}
         <Script src="https://telegram.org/js/telegram-web-app.js?56" strategy="beforeInteractive"/>
         <NavBar />
-      </body>
-      </TelegramProvider>
+        </TelegramProvider>
       </ToastProvider>
+      </body>
     </html>
   );
 }

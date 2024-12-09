@@ -110,11 +110,10 @@ interface OnlineGameStore {
 
 const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
   roomId: null,
-  winner: null,
   setRoomId: (id: string) => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
     //   const telegramUser = {
-    //   id: 5532711018,
+    //   id: 6761460629,
     //   username: 'doye',
     // };
     if (!telegramUser) return;
@@ -234,7 +233,7 @@ checkDiceRollsAndSetTurn: async () => {
   selectCharacters: async (roomId: string, characterId: string) => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
   //   const telegramUser = {
-  //     id: 5532711018,
+  //     id: 6761460629,
   //     username: 'doye',
   // };
     if (!telegramUser) {
@@ -473,7 +472,7 @@ checkDiceRollsAndSetTurn: async () => {
   createOnlineGameRoom: async () => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
   //   const telegramUser = {
-  //     id: 5532711018,
+  //     id: 6761460629,
   //     username: 'doye',
   // };
     if (!telegramUser) {
@@ -511,7 +510,7 @@ checkDiceRollsAndSetTurn: async () => {
   joinGameRoom: async (roomId) => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
     // const telegramUser = {
-    //     id: 5532711018,
+    //     id: 6761460629,
     //     username: 'doye',
     // };
     if (!telegramUser) {
@@ -548,7 +547,7 @@ checkDiceRollsAndSetTurn: async () => {
   findOpenGameRoom: async () => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
     // const telegramUser = {
-    //   id: 5532711018,
+    //   id: 6761460629,
     // };
   
     if (!telegramUser) {
@@ -646,86 +645,144 @@ checkDiceRollsAndSetTurn: async () => {
     }));
   },
 
+  // init: () => {
+  //   const { roomId } = get(); 
+  //   const telegramUser = {id: 6761460629};
+  //   // const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+  
+  //   if (!roomId || !telegramUser?.id) {
+  //     console.error("Room ID or Player Telegram ID is missing.");
+  //     return () => {}; 
+  //   }
+   
+  //   const roomRef = doc(db, 'gameRooms', roomId);
+   
+  //   const unsubscribe = onSnapshot(roomRef, (snapshot) => {
+  //     const roomData = snapshot.data() as GameRoomDocument;
+   
+  //     if (!roomData) {
+  //       console.warn("Room data does not exist.");
+  //       return;
+  //     }
+  
+  //     // More type-safe player extraction
+  //     const playerIds = Object.keys(roomData.players || {})
+  //       .map(id => Number(id))
+  //       .filter(id => !isNaN(id));
+  
+  //     const player1TelegramId = playerIds[0];
+  //     const player2TelegramId = playerIds[1];
+  
+  //     set((state) => {
+  //       const updatedGameState: GameState = {
+  //         ...state.gameState,
+  //         player1: {
+  //           ...state.gameState.player1,
+  //           id: player1TelegramId ?? state.gameState.player1.id,
+  //           character: player1TelegramId
+  //             ? CHARACTERS.find(
+  //                 c => c.id === roomData.players[player1TelegramId]?.characterId
+  //               ) 
+  //             : state.gameState.player1.character,
+  //           currentHealth: roomData.gameState?.player1?.currentHealth 
+  //             ?? state.gameState.player1.currentHealth,
+  //           defenseInventory: roomData.gameState?.player1?.defenseInventory 
+  //             ?? state.gameState.player1.defenseInventory,
+  //         },
+  //         player2: {
+  //           ...state.gameState.player2,
+  //           id: player2TelegramId ?? state.gameState.player2.id,
+  //           character: player2TelegramId
+  //             ? CHARACTERS.find(
+  //                 c => c.id === roomData.players[player2TelegramId]?.characterId
+  //               ) 
+  //             : state.gameState.player2.character,
+  //           currentHealth: roomData.gameState?.player2?.currentHealth 
+  //             ?? state.gameState.player2.currentHealth,
+  //           defenseInventory: roomData.gameState?.player2?.defenseInventory 
+  //             ?? state.gameState.player2.defenseInventory,
+  //         },
+  //         currentTurn: roomData.gameState?.currentTurn 
+  //           ?? state.gameState.currentTurn,
+  //         gameStatus: roomData.gameState?.gameStatus 
+  //           ?? state.gameState.gameStatus,
+  //         winner: roomData.gameState?.winner 
+  //           ?? state.gameState.winner,
+  //         lastAttack: roomData.gameState?.lastAttack 
+  //           ?? state.gameState.lastAttack,
+  //         diceRolls: roomData.gameState?.diceRolls 
+  //           ?? state.gameState.diceRolls,
+  //       };
+  
+  //       console.log('Updating game state:', updatedGameState);
+  
+  //       return {
+  //         gameState: updatedGameState,
+  //         roomId,
+  //       };
+  //     });
+  //   });
+  
+  //   return unsubscribe;
+  // }
   init: () => {
     const { roomId } = get(); 
-    // const telegramUser = {id: 5532711018};
+    // const telegramUser = {id: 6761460629};
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-  
     if (!roomId || !telegramUser?.id) {
       console.error("Room ID or Player Telegram ID is missing.");
       return () => {}; 
     }
-   
+ 
     const roomRef = doc(db, 'gameRooms', roomId);
-   
+ 
     const unsubscribe = onSnapshot(roomRef, (snapshot) => {
       const roomData = snapshot.data() as GameRoomDocument;
-   
+ 
       if (!roomData) {
         console.warn("Room data does not exist.");
         return;
       }
-  
-      // More type-safe player extraction
-      const playerIds = Object.keys(roomData.players || {})
-        .map(id => Number(id))
-        .filter(id => !isNaN(id));
-  
-      const player1TelegramId = playerIds[0];
-      const player2TelegramId = playerIds[1];
-  
-      set((state) => {
-        const updatedGameState: GameState = {
+ 
+      // Extract players and game state from room data
+      const players = Object.values(roomData.players || {});
+      const player1 = players[0];
+      const player2 = players[1];
+ 
+      set((state) => ({
+        gameState: {
           ...state.gameState,
           player1: {
             ...state.gameState.player1,
-            id: player1TelegramId ?? state.gameState.player1.id,
-            character: player1TelegramId
-              ? CHARACTERS.find(
-                  c => c.id === roomData.players[player1TelegramId]?.characterId
-                ) 
+            id: roomData?.gameState?.player1?.id ?? state.gameState.player1.id,
+            character: player1
+              ? CHARACTERS.find((c) => c.id === player1.characterId)
               : state.gameState.player1.character,
-            currentHealth: roomData.gameState?.player1?.currentHealth 
-              ?? state.gameState.player1.currentHealth,
-            defenseInventory: roomData.gameState?.player1?.defenseInventory 
-              ?? state.gameState.player1.defenseInventory,
+            currentHealth: roomData.gameState?.player1?.currentHealth ?? state.gameState.player1.currentHealth,
+            defenseInventory: roomData.gameState?.player1?.defenseInventory ?? state.gameState.player1.defenseInventory
           },
+          // Update Player 2 state
           player2: {
             ...state.gameState.player2,
-            id: player2TelegramId ?? state.gameState.player2.id,
-            character: player2TelegramId
-              ? CHARACTERS.find(
-                  c => c.id === roomData.players[player2TelegramId]?.characterId
-                ) 
+            id: roomData?.gameState?.player2?.id ?? state.gameState.player2.id,
+            character: player2
+              ? CHARACTERS.find((c) => c.id === player2.characterId)
               : state.gameState.player2.character,
-            currentHealth: roomData.gameState?.player2?.currentHealth 
-              ?? state.gameState.player2.currentHealth,
-            defenseInventory: roomData.gameState?.player2?.defenseInventory 
-              ?? state.gameState.player2.defenseInventory,
+            currentHealth: roomData.gameState?.player2?.currentHealth ?? state.gameState.player2.currentHealth,
+            defenseInventory: roomData.gameState?.player2?.defenseInventory ?? state.gameState.player2.defenseInventory
           },
-          currentTurn: roomData.gameState?.currentTurn 
-            ?? state.gameState.currentTurn,
-          gameStatus: roomData.gameState?.gameStatus 
-            ?? state.gameState.gameStatus,
-          winner: roomData.gameState?.winner 
-            ?? state.gameState.winner,
-          lastAttack: roomData.gameState?.lastAttack 
-            ?? state.gameState.lastAttack,
-          diceRolls: roomData.gameState?.diceRolls 
-            ?? state.gameState.diceRolls,
-        };
-  
-        console.log('Updating game state:', updatedGameState);
-  
-        return {
-          gameState: updatedGameState,
-          roomId,
-        };
-      });
+          // Update game meta-state
+          currentTurn: roomData.gameState?.currentTurn ?? state.gameState.currentTurn,
+          gameStatus: roomData.gameState?.gameStatus ?? state.gameState.gameStatus,
+          lastAttack: roomData.gameState?.lastAttack ?? state.gameState.lastAttack,
+          diceRolls: roomData.gameState?.diceRolls ?? state.gameState.diceRolls,
+          winner: roomData.gameState?.winner ?? state.gameState.winner,
+        },
+        roomId,
+      }));
     });
-  
     return unsubscribe;
-  } 
+  }, 
 }))
 
 export default useOnlineGameStore;
