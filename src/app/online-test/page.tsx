@@ -173,9 +173,6 @@ const GameComponent: React.FC = () => {
     [roomId, selectCharacters, selectedCharacterId]
   );
 
-  const isPlayer1 = gameState.player1?.id === currentUserTelegramId;
-  const isPlayer2 = gameState.player2?.id === currentUserTelegramId;
-
   return (
     <div className="bg-gradient-to-r from-pink-200 via-yellow-200 to-teal-200 h-full overflow-auto p-8 font-sans pb-[200px]">
       <h1 className="text-4xl font-bold text-center text-teal-800 mb-8">Online Battle Game</h1>
@@ -243,14 +240,18 @@ const GameComponent: React.FC = () => {
 
         {/* Player Info */}
         <div className="mt-4">
-          <h3 className="font-semibold text-teal-700">Player 1 {isPlayer1 && '(You)'}</h3>
-          <p className="text-teal-700">Character: {isPlayer1 ? gameState?.player1?.character?.name : ''}</p>
-          <p className="text-teal-700">Health: {isPlayer1 ? gameState?.player1?.currentHealth : ''}</p>
+          <h3 className="font-semibold text-teal-700">Player 1 {gameState.player1?.id === currentUserTelegramId && '(You)'}</h3>
+          <p className="text-teal-700">Character: {gameState.player1?.id === currentUserTelegramId 
+          ? gameState.player1?.character?.name 
+          : gameState.player1?.character?.name || 'Not selected'}</p>
+          <p className="text-teal-700">Health: {gameState?.player1?.currentHealth}</p>
         </div>
         <div className="mt-4">
-          <h3 className="font-semibold text-teal-700">Player 2 {isPlayer2 && '(You)'}</h3>
-          <p className="text-teal-700">Character: {isPlayer2 ? gameState?.player2?.character?.name : ''}</p>
-          <p className="text-teal-700">Health: {isPlayer2 ? gameState?.player2?.currentHealth : ''}</p>
+          <h3 className="font-semibold text-teal-700">Player 2 {gameState.player2?.id === currentUserTelegramId && '(You)'}</h3>
+          <p className="text-teal-700">Character: {gameState.player2?.id === currentUserTelegramId 
+          ? gameState.player2?.character?.name 
+          : gameState.player2?.character?.name || 'Not selected'}</p>
+          <p className="text-teal-700">Health: {gameState?.player2?.currentHealth}</p>
         </div>
 
         <button onClick={() => init()} className="bg-teal-500 text-white py-2 px-4 rounded-md disabled:bg-gray-300 disabled:text-gray-500">Initialize game state</button>
