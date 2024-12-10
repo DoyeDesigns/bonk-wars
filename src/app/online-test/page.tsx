@@ -29,7 +29,9 @@ const GameComponent: React.FC = () => {
   const [showSkipDefenseButton, setShowSkipDefenseButton] = useState(false);
   const [lastAttackDetails, setLastAttackDetails] = useState<LastAttackDetails>({ability: null, attackingPlayer: null});
   const [showDefenseModal, setShowDefenseModal] = useState(false);
-  const [defendingPlayer, setDefendingPlayer] = useState('')
+  const [defendingPlayer, setDefendingPlayer] = useState('');
+  const [currentUserTelegramId, setCurrentUserTelegramId] = useState<number | null>(null);
+
 
   const { addToast } = useToast()
 
@@ -65,11 +67,15 @@ const GameComponent: React.FC = () => {
         return;
       }
 
-      const telegramUserId = window.Telegram?.WebApp?.initDataUnsafe?.user
+      const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      if (telegramUser?.id) {
+        setCurrentUserTelegramId(telegramUser.id);
+      }
+      
       const attackingPlayer = gameState.lastAttack.attackingPlayer;
       const defendingPlayer = attackingPlayer === 'player1' ? 'player2' : 'player1';
 
-      if (telegramUserId?.id === gameState[defendingPlayer]?.id) {
+      if (currentUserTelegramId === gameState[defendingPlayer]?.id) {
         const defenseInventory = gameState[defendingPlayer]?.defenseInventory || {};
         const hasDefenses = Object.values(defenseInventory).some((count) => count > 0);
   
@@ -85,7 +91,7 @@ const GameComponent: React.FC = () => {
     } else {
       setShowDefenseModal(false);
     }
-  }, [gameState.lastAttack, gameState.gameStatus]);
+  }, [gameState.lastAttack, gameState.winner]);
 
   const handleDefenseSelection = async (defenseType: string | null) => {
     const { ability, attackingPlayer } = lastAttackDetails;
@@ -167,6 +173,9 @@ const GameComponent: React.FC = () => {
     [roomId, selectCharacters, selectedCharacterId]
   );
 
+  const isPlayer1 = gameState.player1?.id === currentUserTelegramId;
+  const isPlayer2 = gameState.player2?.id === currentUserTelegramId;
+
   return (
     <div className="bg-gradient-to-r from-pink-200 via-yellow-200 to-teal-200 h-full overflow-auto p-8 font-sans pb-[200px]">
       <h1 className="text-4xl font-bold text-center text-teal-800 mb-8">Online Battle Game</h1>
@@ -234,14 +243,14 @@ const GameComponent: React.FC = () => {
 
         {/* Player Info */}
         <div className="mt-4">
-          <h3 className="font-semibold text-teal-700">Player 1</h3>
-          <p className="text-teal-700">Character: {gameState?.player1?.character?.name}</p>
-          <p className="text-teal-700">Health: {gameState?.player1?.currentHealth}</p>
+          <h3 className="font-semibold text-teal-700">Player 1 {isPlayer1 && '(You)'}</h3>
+          <p className="text-teal-700">Character: {isPlayer1 ? gameState?.player1?.character?.name : ''}</p>
+          <p className="text-teal-700">Health: {isPlayer1 ? gameState?.player1?.currentHealth : ''}</p>
         </div>
         <div className="mt-4">
-          <h3 className="font-semibold text-teal-700">Player 2</h3>
-          <p className="text-teal-700">Character: {gameState?.player2?.character?.name}</p>
-          <p className="text-teal-700">Health: {gameState?.player2?.currentHealth}</p>
+          <h3 className="font-semibold text-teal-700">Player 2 {isPlayer2 && '(You)'}</h3>
+          <p className="text-teal-700">Character: {isPlayer2 ? gameState?.player2?.character?.name : ''}</p>
+          <p className="text-teal-700">Health: {isPlayer2 ? gameState?.player2?.currentHealth : ''}</p>
         </div>
 
         <button onClick={() => init()} className="bg-teal-500 text-white py-2 px-4 rounded-md disabled:bg-gray-300 disabled:text-gray-500">Initialize game state</button>
