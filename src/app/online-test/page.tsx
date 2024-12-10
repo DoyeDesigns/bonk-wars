@@ -55,12 +55,11 @@ const GameComponent: React.FC = () => {
       gameState.lastAttack?.ability?.type === 'attack' &&
       gameState.lastAttack?.attackingPlayer
     ) {
-      
-      setLastAttackDetails(gameState.lastAttack);
 
+      setLastAttackDetails(gameState.lastAttack);
       setShowDefenseModal(false);
       setShowSkipDefenseButton(false);
-  
+    
       if (gameState.winner !== null) {
         addToast(`${gameState.winner} has won the game`, 'info');
         return;
@@ -80,7 +79,7 @@ const GameComponent: React.FC = () => {
           setShowSkipDefenseButton(true);
         } else {
           // Automatically skip defense if no defenses are available
-          useOnlineGameStore.getState().takeDamage(defendingPlayer, gameState.lastAttack.ability.value, gameState.lastAttack.ability )
+          useOnlineGameStore.getState().skipDefense(defendingPlayer, gameState.lastAttack.ability.value, gameState.lastAttack.ability);
         }
       }
     } else {
