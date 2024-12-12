@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { Character } from "@/lib/characters";
 import useOnlineGameStore from "@/store/online-game-store";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 function CreateGameMultiStepForm() {
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -52,6 +53,7 @@ function CreateGameMultiStepForm() {
   }
 
   return (
+    <Suspense>
     <div className="pt-4 h-full overflow-auto bg-background flex flex-col items-center px-5">
       <div>
       {currentStep === 3 ? (<></>) : (<div className="relative">
@@ -126,6 +128,7 @@ function CreateGameMultiStepForm() {
         )}
       </div>
     </div>
+    </Suspense>
   );
 }
 
