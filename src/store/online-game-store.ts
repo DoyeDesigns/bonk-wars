@@ -115,10 +115,6 @@ const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
   roomId: null,
   setRoomId: (id: string) => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    //   const telegramUser = {
-    //   id: 5532711018,
-    //   username: 'doye',
-    // };
     if (!telegramUser) return;
 
     set({ 
@@ -235,10 +231,6 @@ checkDiceRollsAndSetTurn: async () => {
 
   selectCharacters: async (roomId: string, characterId: string) => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-  //   const telegramUser = {
-  //     id: 5532711018,
-  //     username: 'doye',
-  // };
     if (!telegramUser) {
       throw new Error('Telegram user not found');
     }
@@ -484,10 +476,6 @@ checkDiceRollsAndSetTurn: async () => {
 
   createOnlineGameRoom: async () => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-  //   const telegramUser = {
-  //     id: 5532711018,
-  //     username: 'doye',
-  // };
     if (!telegramUser) {
       throw new Error('Telegram user not found');
     }
@@ -522,10 +510,6 @@ checkDiceRollsAndSetTurn: async () => {
 
   joinGameRoom: async (roomId) => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    // const telegramUser = {
-    //     id: 5532711018,
-    //     username: 'doye',
-    // };
     if (!telegramUser) {
       throw new Error('Telegram user not found');
     }
@@ -559,9 +543,6 @@ checkDiceRollsAndSetTurn: async () => {
 
   findOpenGameRoom: async () => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    // const telegramUser = {
-    //   id: 5532711018,
-    // };
   
     if (!telegramUser) {
       throw new Error('Telegram user not found');
@@ -588,9 +569,6 @@ checkDiceRollsAndSetTurn: async () => {
 
   findUserRooms: async () => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    // const telegramUser = {
-    //   id: 5532711018, 
-    // };
   
     if (!telegramUser) {
       throw new Error('Telegram user not found');

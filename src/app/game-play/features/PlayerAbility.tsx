@@ -7,11 +7,16 @@ export default function PlayerAbility({ gameState, userId }: {
   userId: number | null
 }) {
   // Always show the current user's information
-  const currentPlayer = gameState?.player1.id === userId 
-    ? gameState?.player1 
-    : gameState?.player2;
+  const isPlayer1 = gameState?.player1.id === userId;
+  const isPlayer2 = gameState?.player2.id === userId;
 
-    console.log('player health:', currentPlayer?.character?.id);
+  const currentPlayer = isPlayer1 
+    ? gameState.player1 
+    : isPlayer2 
+      ? gameState.player2 
+      : null;
+
+    console.log('Current player ability', currentPlayer?.character)
 
     const character = CHARACTERS.find((c) => c.id === currentPlayer?.character?.id);
 

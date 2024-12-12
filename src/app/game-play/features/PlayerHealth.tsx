@@ -1,4 +1,3 @@
-import React from 'react'
 import Image from 'next/image'
 import { GameRoomDocument } from '@/store/online-game-store';
 
@@ -6,17 +5,20 @@ export default function PlayerHealth({ gameState, userId }: {
   gameState?: GameRoomDocument['gameState'],
   userId: number | null
 }) {
+
+  const isPlayer1 = gameState?.player1.id === userId;
+  const isPlayer2 = gameState?.player2.id === userId;
   // Always show the current user's information
-  const currentPlayer = gameState?.player1.id === userId 
-    ? gameState?.player1 
-    : gameState?.player2;
+  const currentPlayer = isPlayer1 
+    ? gameState.player1 
+    : isPlayer2 
+      ? gameState.player2 
+      : null;
  
   // Calculate health percentage
   const healthPercentage = currentPlayer?.currentHealth
     ? Math.max(0, Math.min(100, (currentPlayer.currentHealth / (currentPlayer.character?.baseHealth || 100)) * 100))
     : 0;
-
-    console.log('player health:', currentPlayer?.currentHealth);
 
   return (
     <div className='bg-[#E1C17B] h-10 w-[250px] rounded-2xl flex gap-3 px-2 items-center '>
@@ -46,16 +48,15 @@ export function OpponentPlayerHealth({ gameState, userId }: {
   userId: number | null
 }) {
   // Always show the opponent's information
-  const opponentPlayer = gameState?.player1.id === userId 
-    ? gameState?.player2 
-    : gameState?.player1;
- 
+
+  const opponentPlayer = gameState?.player1.id !== userId 
+    ? gameState?.player1 
+    : gameState?.player2;
+
   // Calculate health percentage
   const healthPercentage = opponentPlayer?.currentHealth
     ? Math.max(0, Math.min(100, (opponentPlayer.currentHealth / (opponentPlayer.character?.baseHealth || 100)) * 100))
     : 0;
-
-    console.log('opponent health:', opponentPlayer?.currentHealth);
 
   return (
     <div className='bg-[#E1C17B] h-10 w-[250px] rounded-2xl flex flex-row-reverse gap-3 px-2 items-center '>

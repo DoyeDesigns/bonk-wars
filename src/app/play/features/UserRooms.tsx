@@ -68,9 +68,9 @@ const UserGameRooms = () => {
         <button className="btn btn-sm btn-outline text-white hover:bg-background hover:text-white" onClick={fetchUserGameRooms}>
             Refresh
           </button>
-        <div className="dropdown dropdown-end z-20">
-          <button className="btn btn-sm h-8 btn-outline text-white hover:bg-background hover:text-white">Sort By</button>
-          <ul className="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-52">
+        <div className="dropdown dropdown-left z-50">
+          <div tabIndex={0} role="button" className="btn btn-sm h-8 btn-outline text-white hover:bg-background hover:text-white">Sort By</div>
+          <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
             <li>
               <button onClick={() => setSortBy('waiting')}>Waiting</button>
             </li>

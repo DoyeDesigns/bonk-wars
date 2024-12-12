@@ -59,16 +59,18 @@ export default function PlayerStatistics({user} : PlayerStatisticsProps) {
     try {
       const rooms = await findUserRooms();
       
-      // Sort rooms by date in descending order
-      const sortedRooms = (rooms || []).sort((a, b) => {
-        // Assuming createdAt is a Firestore Timestamp
-        return b.createdAt.seconds - a.createdAt.seconds;
-      });
+      // Filter for finished rooms and sort by date in descending order
+      const finishedRooms = (rooms || [])
+        .filter(room => room.status === 'finished')
+        .sort((a, b) => {
+          // Assuming createdAt is a Firestore Timestamp
+          return b.createdAt.seconds - a.createdAt.seconds;
+        });
       
-      setJoinedRooms(sortedRooms);
+      setJoinedRooms(finishedRooms);
       
-      // Calculate statistics after fetching rooms
-      calculateStatistics(sortedRooms);
+      // Calculate statistics after fetching and filtering rooms
+      calculateStatistics(finishedRooms);
     } catch (error) {
       console.error("Error fetching joined rooms:", error);
     } finally {

@@ -49,6 +49,14 @@ export default function Gameplay({roomId} : {roomId: string}) {
     };
   }, [gameRoomId, init]);
 
+  useEffect(() =>
+  {
+    const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      if (telegramUser?.id) {
+        setCurrentUserTelegramId(telegramUser.id);
+      }
+  }, [currentUserTelegramId])
+
   // Handle defense modal logic
   useEffect(() => {
     if (
@@ -58,21 +66,9 @@ export default function Gameplay({roomId} : {roomId: string}) {
       gameState.lastAttack?.attackingPlayer
     ) {
 
-      if (gameState.player1.id === null || gameState.player2.id === null) {
-        alert('There is only one player in this game. Waiting for other player to join')
-        router.push('/play');
-      }
-
       setLastAttackDetails(gameState.lastAttack);
       setShowDefenseModal(false);
       setShowSkipDefenseButton(false);
-
-      const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-      if (telegramUser?.id) {
-        setCurrentUserTelegramId(telegramUser.id);
-        // setCurrentUserTelegramId(5532711018);
-
-      }
     
       if (gameState.winner !== null) {
         addToast(`${gameState.winner} has won the game`, 'info');
