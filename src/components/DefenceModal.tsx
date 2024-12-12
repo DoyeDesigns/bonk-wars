@@ -33,7 +33,7 @@ const availableDefenses = Object.entries(defenseInventory)
       <button
         key={defenseType}
         onClick={() => onDefenseSelect(defenseType)}
-        className="bg-blue-500 text-white px-4 py-2 rounded mr-2 mb-2 hover:bg-blue-600 disabled:opacity-50"
+        className="bg-secondary text-white px-4 py-2 rounded mr-2 mb-2 hover:bg-secondary/50 animate-pulse disabled:opacity-50"
       >
         {defenseType.charAt(0).toUpperCase() + defenseType.slice(1)}
         <span className="ml-2 bg-blue-600 px-2 rounded-full">{count}</span>
@@ -65,7 +65,7 @@ const availableDefenses = Object.entries(defenseInventory)
         {showSkipButton && (
           <button
             onClick={() => onDefenseSelect(null)}
-            className="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+            className="w-full bg-accent text-white px-4 py-2 rounded hover:bg-red-600"
           >
             Skip Defense (Take Damage)
           </button>
