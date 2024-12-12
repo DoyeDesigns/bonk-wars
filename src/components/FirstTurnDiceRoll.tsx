@@ -9,10 +9,9 @@ const DiceRollToDetermineFirstTurn = () => {
     const [telegramUserId, setTelegramUserId] = useState<number | null>(null);
 
     useEffect(() => {
-      // if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
-      //   setTelegramUserId(window.Telegram.WebApp.initDataUnsafe.user.id);
-      // }
-      // setTelegramUserId(6761460629);
+      if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+        setTelegramUserId(window.Telegram.WebApp.initDataUnsafe.user.id);
+      }
     }, []);
   
     const hasPlayerRolled = (() => {
