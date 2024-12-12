@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { 
   doc, 
   setDoc, 
-  updateDoc, 
   onSnapshot, 
   collection, 
   serverTimestamp,
@@ -11,7 +10,6 @@ import {
   getDocs,
   getDoc,
   writeBatch,
-  startAfter
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { CHARACTERS, Character, Ability } from '@/lib/characters';
