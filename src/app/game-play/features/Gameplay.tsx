@@ -68,9 +68,9 @@ export default function Gameplay({roomId} : {roomId: string}) {
       setShowDefenseModal(false);
       setShowSkipDefenseButton(false);
     
-      if (gameState.winner !== null) {
+      if (gameState.winner === 'player1' || gameState.winner === 'player2') {
         addToast(`${gameState.winner} has won the game`, 'success');
-        if (currentUserTelegramId === gameState[gameState.winner]?.id) {
+        if (currentUserTelegramId === gameState[gameState?.winner]?.id) {
           setShowWinner(true); 
         } else {
           setShowLoser(true);
