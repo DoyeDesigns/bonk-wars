@@ -10,7 +10,8 @@ import {
   where,
   getDocs,
   getDoc,
-  writeBatch
+  writeBatch,
+  startAfter
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { CHARACTERS, Character, Ability } from '@/lib/characters';
@@ -21,7 +22,7 @@ type UpdateData = {
 };
 
 // Define the structure of a player in the game room
-interface GameRoomPlayer {
+export interface GameRoomPlayer {
   telegramId: number;
   username?: string;
   characterId: string | null;
@@ -109,8 +110,7 @@ interface OnlineGameStore {
   joinGameRoom: (roomId: string) => Promise<void>;
   findUserRooms: () => Promise<GameRoomDocument[] | null>;
   findOpenGameRoom: () => Promise<GameRoomDocument[] | null>;
-  leaveGameRoom: () => Promise<void>;
-  init: () => () => void;
+  init: (roomId: string) => () => void;
 }
 
 const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
@@ -118,7 +118,7 @@ const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
   setRoomId: (id: string) => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
     //   const telegramUser = {
-    //   id: 6761460629,
+    //   id: 5532711018,
     //   username: 'doye',
     // };
     if (!telegramUser) return;
@@ -229,7 +229,6 @@ checkDiceRollsAndSetTurn: async () => {
     // Perform a single Firestore batch update
     await batch.commit();
     console.log('Game state updated successfully.');
-    console.log(`Initial Turn Set: ${firstPlayer} (Dice Rolls: ${playerRoles.player1.roll} vs ${playerRoles.player2.roll})`);
   } catch (error) {
     console.error('Failed to update game state:', error);
   }
@@ -239,7 +238,7 @@ checkDiceRollsAndSetTurn: async () => {
   selectCharacters: async (roomId: string, characterId: string) => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
   //   const telegramUser = {
-  //     id: 6761460629,
+  //     id: 5532711018,
   //     username: 'doye',
   // };
     if (!telegramUser) {
@@ -274,7 +273,6 @@ checkDiceRollsAndSetTurn: async () => {
 
   try {
     await batch.commit();
-    console.log('Character selection updated successfully for:', telegramUser.username);
   } catch (error) {
     console.error('Failed to select character:', error);
     throw new Error('Failed to update the game room. Please try again.');
@@ -344,7 +342,6 @@ checkDiceRollsAndSetTurn: async () => {
       batch.update(roomRef, updateData);
       await batch.commit();
       console.log(`Defending player: ${defendingPlayer} successfully took damage`);
-      console.log(`Turn after Skip Defense: ${defendingPlayer} (Damage: ${incomingDamage}, Ability: ${ability})`);
     } catch (error) {
       console.error('Failed to take damage:', error);
       throw new Error('Failed to process defense action. Please try again later.');
@@ -383,7 +380,6 @@ checkDiceRollsAndSetTurn: async () => {
       batch.update(roomRef, updateData);
       await batch.commit();
       console.log(`Defending player: ${defendingPlayer} successfully took damage`);
-      console.log(`Turn after Skip Defense: ${defendingPlayer} (Damage: ${incomingDamage}, Ability: ${ability})`);
     } catch (error) {
       console.error('Failed to take damage:', error);
       throw new Error('Failed to process defense action. Please try again later.');
@@ -454,11 +450,6 @@ checkDiceRollsAndSetTurn: async () => {
       const batch = writeBatch(db);
       batch.update(roomRef, updateData);
       await batch.commit();
-      console.log(`Turn Change for ${defenseType} Defense: 
-        Defending Player: ${defendingPlayer}
-        Opponent: ${opponentPlayer}
-        New Turn: ${updateData['gameState.currentTurn']}
-        Damage: ${incomingDamage}`);
       return true;
     } catch (error) {
       console.error('Error using defense:', error);
@@ -496,7 +487,7 @@ checkDiceRollsAndSetTurn: async () => {
   createOnlineGameRoom: async () => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
   //   const telegramUser = {
-  //     id: 6761460629,
+  //     id: 5532711018,
   //     username: 'doye',
   // };
     if (!telegramUser) {
@@ -534,7 +525,7 @@ checkDiceRollsAndSetTurn: async () => {
   joinGameRoom: async (roomId) => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
     // const telegramUser = {
-    //     id: 6761460629,
+    //     id: 5532711018,
     //     username: 'doye',
     // };
     if (!telegramUser) {
@@ -571,7 +562,7 @@ checkDiceRollsAndSetTurn: async () => {
   findOpenGameRoom: async () => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
     // const telegramUser = {
-    //   id: 6761460629,
+    //   id: 5532711018,
     // };
   
     if (!telegramUser) {
@@ -600,7 +591,7 @@ checkDiceRollsAndSetTurn: async () => {
   findUserRooms: async () => {
     const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
     // const telegramUser = {
-    //   id: 6761460629, 
+    //   id: 5532711018, 
     // };
   
     if (!telegramUser) {
@@ -618,7 +609,7 @@ checkDiceRollsAndSetTurn: async () => {
     const querySnapshot = await getDocs(q);
   
     if (querySnapshot.empty) {
-      return []; // Return an empty array if no rooms are found
+      return null; // Return an empty array if no rooms are found
     }
   
     // Map through the documents and return an array of their data (or IDs)
@@ -626,107 +617,48 @@ checkDiceRollsAndSetTurn: async () => {
   
     return rooms;
   },
-  
-  
 
-  leaveGameRoom: async () => {
-    const { roomId, playerTelegramId } = get();
-    if (!roomId || !playerTelegramId) {
-      return;
-    }
-
+  init: (roomId) => {
     const roomRef = doc(db, 'gameRooms', roomId);
-    
-    await updateDoc(roomRef, {
-      [`players.${playerTelegramId}`]: null,
-      status: 'waiting'
-    });
-
-    set({ 
-      roomId: null, 
-      playerTelegramId: null 
-    });
-
-    // Reset game state
-    set(() => ({
-      gameState: {
-        player1: {
-          id: null,
-          character: CHARACTERS[0],
-          currentHealth: CHARACTERS[0].baseHealth,
-          defenseInventory: {},
-        },
-        player2: {
-          id: null,
-          character: CHARACTERS[1],
-          currentHealth: CHARACTERS[1].baseHealth,
-          defenseInventory: {},
-        },
-        currentTurn: 'player1',
-        gameStatus: 'character-select',
-        winner: null,
-      }
-    }));
-  },
-
-  init: () => {
-    const { roomId } = get(); 
-    // const telegramUser = {id: 6761460629};
-    const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    if (!roomId || !telegramUser?.id) {
-      console.error("Room ID or Player Telegram ID is missing.");
-      return () => {}; 
-    }
- 
-    const roomRef = doc(db, 'gameRooms', roomId);
- 
+  
     const unsubscribe = onSnapshot(roomRef, (snapshot) => {
-      const roomData = snapshot.data() as GameRoomDocument;
- 
-      if (!roomData) {
-        console.warn("Room data does not exist.");
-        return;
-      }
- 
-      // Extract players and game state from room data
-      const players = Object.values(roomData.players || {});
-      const player1 = players[0];
-      const player2 = players[1];
- 
-      set((state) => ({
-        gameState: {
+      const roomData = snapshot.data();
+  
+      set((state) => {
+        const newGameState = {
           ...state.gameState,
           player1: {
             ...state.gameState.player1,
-            id: roomData?.gameState?.player1?.id ?? state.gameState.player1.id,
-            character: player1
-              ? CHARACTERS.find((c) => c.id === player1.characterId)
-              : state.gameState.player1.character,
-            currentHealth: roomData.gameState?.player1?.currentHealth ?? state.gameState.player1.currentHealth,
-            defenseInventory: roomData.gameState?.player1?.defenseInventory ?? state.gameState.player1.defenseInventory
+            ...roomData?.gameState?.player1,
+            character: CHARACTERS.find(
+              (c) => c.id === roomData?.gameState.player1.characterId
+            ) || state.gameState.player1.character,
           },
-          // Update Player 2 state
           player2: {
             ...state.gameState.player2,
-            id: roomData?.gameState?.player2?.id ?? state.gameState.player2.id,
-            character: player2
-              ? CHARACTERS.find((c) => c.id === player2.characterId)
-              : state.gameState.player2.character,
-            currentHealth: roomData.gameState?.player2?.currentHealth ?? state.gameState.player2.currentHealth,
-            defenseInventory: roomData.gameState?.player2?.defenseInventory ?? state.gameState.player2.defenseInventory
+            ...roomData?.gameState.player2,
+            id: roomData?.gameState.player2.id || state.gameState.player2.id,
+            character: CHARACTERS.find(
+              (c) => c.id === roomData?.gameState.player2.characterId
+            ) || state.gameState.player2.character,
           },
-          // Update game meta-state
-          currentTurn: roomData.gameState?.currentTurn ?? state.gameState.currentTurn,
-          gameStatus: roomData.gameState?.gameStatus ?? state.gameState.gameStatus,
-          lastAttack: roomData.gameState?.lastAttack ?? state.gameState.lastAttack,
-          diceRolls: roomData.gameState?.diceRolls ?? state.gameState.diceRolls,
-          winner: roomData.gameState?.winner ?? state.gameState.winner,
-        },
-        roomId,
-      }));
+          currentTurn: roomData?.gameState.currentTurn,
+          gameStatus: roomData?.gameState.gameStatus,
+          lastAttack: roomData?.gameState.lastAttack,
+          diceRolls: roomData?.gameState.diceRolls,
+          winner: roomData?.gameState.winner,
+        };
+  
+        return {
+          gameState: newGameState,
+          roomId,
+        };
+      });
     });
+  
     return unsubscribe;
-  }, 
+  }
+  , 
 }))
 
 export default useOnlineGameStore;

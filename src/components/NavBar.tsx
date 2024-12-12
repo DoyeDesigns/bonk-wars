@@ -4,11 +4,14 @@ import React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import useOnlineGameStore from '@/store/online-game-store'
 
 export default function NavBar() {
     const path = usePathname();
+    const { roomId } = useOnlineGameStore();
+
     
-    if (path === '/game-play' || path ==='/') return;
+    if (path === '/game-play' || path ==='/' || path === `/game-play/${roomId}`) return;
 
   return (
     <div className='flex items-baseline justify-center gap-[60px] h-[103px] bg-[#171717] absolute bottom-0 z-20 w-full'>

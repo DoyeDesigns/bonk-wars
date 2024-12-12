@@ -14,10 +14,10 @@ const DiceRoll: React.FC = () => {
   const { addToast } = useToast();
 
   useEffect(() => {
-    if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
-      setTelegramUserId(window.Telegram.WebApp.initDataUnsafe.user.id);
-    }
-    // setTelegramUserId(5532711018);
+    // if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+    //   setTelegramUserId(window.Telegram.WebApp.initDataUnsafe.user.id);
+    // }
+    setTelegramUserId(6761460629);
   }, []);
 
   const isPlayerTurn = (() => {
@@ -77,12 +77,12 @@ const DiceRoll: React.FC = () => {
     <div className="flex items-center gap-5">
       <button 
         disabled={!isPlayerTurn}
-        className="bg-teal-500 text-white py-2 px-4 rounded-md disabled:bg-gray-300 disabled:text-gray-500"
+        className="bg-accent text-white py-2 px-4 rounded-xl disabled:bg-accent/70 disabled:text-white"
         onClick={handleRollDice}
       >
         Roll Dice
       </button>
-      <p>{rollNumber}</p>
+      <p className='text-white text-[18px] font-bold'>{rollNumber}</p>
     </div>
   );
 };

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-interface TelegramUser {
+export interface TelegramUser {
   id: number;
   is_bot?: boolean;
   first_name: string;

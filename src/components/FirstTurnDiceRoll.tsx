@@ -9,9 +9,9 @@ const DiceRollToDetermineFirstTurn = () => {
     const [telegramUserId, setTelegramUserId] = useState<number | null>(null);
 
     useEffect(() => {
-      if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
-        setTelegramUserId(window.Telegram.WebApp.initDataUnsafe.user.id);
-      }
+      // if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+      //   setTelegramUserId(window.Telegram.WebApp.initDataUnsafe.user.id);
+      // }
       // setTelegramUserId(6761460629);
     }, []);
   
@@ -37,10 +37,10 @@ const DiceRollToDetermineFirstTurn = () => {
     };
   
     return (
-      <div className="flex items-center gap-5">
+      <div className={`flex items-center gap-5 ${hasPlayerRolled ? 'hidden' : ''}`}>
         <button
           disabled={hasPlayerRolled} 
-          className="bg-teal-500 text-white py-2 px-4 rounded-md disabled:bg-gray-300 disabled:text-gray-500" 
+          className="bg-accent text-white py-2 px-4 rounded-xl disabled:bg-accent/70 disabled:text-white" 
           onClick={handleRollDice}
           >Roll Dice to determine first player
         </button>

@@ -32,7 +32,7 @@ const Step1: React.FC<Step1Props> = ({ value, onChange }) => {
       </div>
       <h1 className='font-bold text-[19px] text-white mb-9 text-center'>Stake tokens</h1>
 
-      <div className='w-[350px] rounded-[10px] bg-[#1A1A1A] h-[276px] border border-[#3B3B3B] px-6 pt-[18px] pb-[35px]'>
+      <div className='w-[350px] rounded-[10px] bg-[#1A1A1A] h-fit border border-[#3B3B3B] px-6 pt-[18px] pb-[35px]'>
       <div className='flex items-center justify-between mb-7'>
         <span className='text-white text-[15px]'>Select Token Amount</span>
         <span className='bg-white rounded-[7px] h-[38px] px-[10px] inline-flex justify-center items-center text-primary font-extrabold text-[15px]'>$BONK</span>

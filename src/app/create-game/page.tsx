@@ -5,14 +5,17 @@ import Step1 from "./features/Step1";
 import Step2 from "./features/Step2";
 import Image from "next/image";
 import Link from "next/link";
-import { Character } from "./features/Step2";
 import Step3 from './features/Step3';
 import { useRouter } from "next/navigation";
+import { Character } from "@/lib/characters";
+import useOnlineGameStore from "@/store/online-game-store";
 
 function CreateGameMultiStepForm() {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [step1Value, setStep1Value] = useState<number>(0);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
+  const [roomId, setRoomId] = useState('');
+  const { createOnlineGameRoom, joinGameRoom, selectCharacters } = useOnlineGameStore();
 
   const router = useRouter()
 
@@ -20,13 +23,16 @@ function CreateGameMultiStepForm() {
   const handleBack = () =>
     setCurrentStep((prev) => (prev <= 0 || prev === 1 ? 1 : prev - 1));
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const formData = {
       name: step1Value,
       option: selectedCharacter,
     };
     console.log("Collected Data:", formData);
-    alert("Form submitted successfully!");
+    const newRoomId = await createOnlineGameRoom();
+    setRoomId(newRoomId);
+    joinGameRoom(newRoomId);
+    selectCharacters(newRoomId, formData?.option?.id as string);
     handleNext();
   };
 
@@ -62,13 +68,13 @@ function CreateGameMultiStepForm() {
         {currentStep === 2 && (
           <Step2 selectedItem={selectedCharacter} onSelect={setSelectedCharacter} />
         )}
-        {currentStep === 3 && <Step3 />}
+        {currentStep === 3 && <Step3 roomId={roomId}/>}
       </div>
 
       <div className="flex justify-center pb-[150px]">
         {currentStep < 2 && (
           <button
-            className="bg-primary btn text-white h-12 rounded-[5px] w-[349px] mt-[35px]"
+            className="bg-primary hover:bg-primary hover:text-white btn text-white h-12 rounded-[5px] w-[349px] mt-[35px]"
             onClick={handleNext}
             disabled={currentStep === 1 && !step1Value}
           >
@@ -77,7 +83,7 @@ function CreateGameMultiStepForm() {
         )}
         {currentStep === 2 && (
           <button
-            className="bg-primary btn text-white h-12 rounded-[5px] w-[349px] mt-[35px]"
+            className="bg-primary hover:bg-primary hover:text-white btn text-white h-12 rounded-[5px] w-[349px] mt-[35px]"
             onClick={handleSubmit}
             disabled={!selectedCharacter}
           >
@@ -86,11 +92,11 @@ function CreateGameMultiStepForm() {
         )}
         {currentStep === 3 && (
           <button
-            className="bg-white btn font-bold text-primary h-12 rounded-[5px] w-fit px-3 mt-[35px]"
+            className="bg-white btn font-bold hover:text-primary text-primary hover:bg-white h-12 rounded-[5px] w-fit px-3 mt-[35px]"
             disabled={!selectedCharacter}
             onClick={() => router.push('/play')}
           >
-            Home
+            View game details
           </button>
         )}
       </div>
