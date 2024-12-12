@@ -151,7 +151,7 @@ export default function Gameplay({roomId} : {roomId: string}) {
 };
 
   return (
-    <div className='bg-[url("/game-play-bg.png")] bg-cover bg-no-repeat h-full overflow-auto  pt-[32px] relative'>
+    <div className='bg-[url("/game-play-bg.png")] bg-cover bg-no-repeat h-full overflow-auto  pt-[15px] relative'>
       <div className="flex flex-col gap-5 px-5">
         <div>
           <PlayerHealth  gameState={gameState}  userId={currentUserTelegramId}/>
@@ -160,7 +160,7 @@ export default function Gameplay({roomId} : {roomId: string}) {
           <OpponentPlayerHealth gameState={gameState}  userId={currentUserTelegramId}/>
         </div>
       </div>
-      <div className="flex flex-col items-center justify-center mt-10 mb-[46px]">
+      <div className="flex flex-col items-center justify-center mt-10 mb-5">
         <span className="text-[22px] font-bold text-white my-2 text-center">
           {gameState.currentTurn === 'player1' ? 'Player 1 turn' : 'Player 2 turn'}
         </span>
