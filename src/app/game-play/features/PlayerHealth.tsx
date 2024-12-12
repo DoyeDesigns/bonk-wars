@@ -6,7 +6,7 @@ export default function PlayerHealth({ gameState, userId }: {
   userId: number | null
 }) {
 
-  const isPlayer1 = gameState?.player1.id === userId;
+  // const isPlayer1 = gameState?.player1.id === userId;
   // const isPlayer2 = gameState?.player2.id === userId;
   // Always show the current user's information
   const currentPlayer = gameState?.player1
