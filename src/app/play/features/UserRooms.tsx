@@ -117,12 +117,12 @@ const UserGameRooms = () => {
                 <strong>Status:</strong>
                 <span
                   className={`badge text-white border-none ${
-                    gameRoom.status === 'character-select'
+                    gameRoom.gameState?.gameStatus === 'character-select'
                       ? 'bg-yellow-700'
                       : 'bg-green-900'
                   } ml-2`}
                 >
-                  {gameRoom.status}
+                  {gameRoom?.gameState?.gameStatus}
                 </span>
               </p>
               <p>

@@ -9,7 +9,6 @@ import DefenseModal from '@/components/DefenceModal';
 import { useToast } from '@/contexts/toast-context';
 import PlayerHealth, { OpponentPlayerHealth } from "./PlayerHealth";
 import PlayerAbility from './PlayerAbility';
-import { useRouter } from 'next/navigation';
 import WonMessage from './WonMessage'
 import LostMessage from './LostMessage'
 
@@ -37,7 +36,6 @@ export default function Gameplay({roomId} : {roomId: string}) {
 
 
   const { addToast } = useToast();
-  const router = useRouter();
 
   const gameRoomId = roomId;
 
@@ -71,7 +69,7 @@ export default function Gameplay({roomId} : {roomId: string}) {
       setShowSkipDefenseButton(false);
     
       if (gameState.winner !== null) {
-        addToast(`${gameState.winner} has won the game`, 'info');
+        addToast(`${gameState.winner} has won the game`, 'success');
         if (currentUserTelegramId === gameState[gameState.winner]?.id) {
           setShowWinner(true); 
         } else {
@@ -94,6 +92,7 @@ export default function Gameplay({roomId} : {roomId: string}) {
         } else {
           // Automatically skip defense if no defenses are available
           useOnlineGameStore.getState().skipDefense(defendingPlayer, gameState.lastAttack.ability.value, gameState.lastAttack.ability);
+          addToast(`You took -${gameState.lastAttack.ability.value} damage`, 'error')
         }
       }
     } else {
@@ -110,7 +109,7 @@ export default function Gameplay({roomId} : {roomId: string}) {
  
     if (defenseType === null) {
       useOnlineGameStore.getState().skipDefense(defendingPlayer, incomingDamage, ability);
-      addToast(`${defendingPlayer} took ${incomingDamage} damage from ${ability.name}`, 'info');
+      addToast(`${defendingPlayer} took -${incomingDamage} damage from ${ability.name}`, 'error');
     } else {
       const defenseAbility: Ability = {
         id: `${defendingPlayer}-${defenseType}`,
@@ -130,13 +129,13 @@ export default function Gameplay({roomId} : {roomId: string}) {
       if (wasDefenseSuccessful) {
         switch (defenseType) {
           case 'dodge':
-            addToast(`${defendingPlayer} dodged the attack`, 'info');
+            addToast(`${defendingPlayer} dodged the attack`, 'success');
             break;
           case 'block':
-            addToast(`${defendingPlayer} blocked the attack`, 'info');
+            addToast(`${defendingPlayer} blocked the attack`, 'success');
             break;
           case 'reflect':
-            addToast(`${defendingPlayer} reflected the attack`, 'info');
+            addToast(`${defendingPlayer} reflected the attack`, 'success');
             break;
         }
       }
