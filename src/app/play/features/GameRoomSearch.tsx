@@ -129,10 +129,10 @@ const GameRoomSearch = () => {
             <div className="card-actions justify-end mt-4">
               <button 
                 onClick={handleJoinRoom}
-                disabled={gameRoom.status !== 'waiting'}
+                disabled={gameRoom.status !== 'character-select'}
                 className="btn btn-sm bg-secondary text-black font-bold hover:bg-secondary/80 border-none"
               >
-                {gameRoom.status === 'waiting' ? 'Join Room' : 'Room Unavailable'}
+                {gameRoom.status === 'waiting' || gameRoom.status === 'character-select' ? 'Join Room' : 'Room Unavailable'}
               </button>
             </div>
           </div>
