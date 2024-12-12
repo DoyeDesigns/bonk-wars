@@ -70,7 +70,7 @@ const UserGameRooms = () => {
           </button>
         <div className="dropdown dropdown-end z-20">
           <button className="btn btn-sm h-8 btn-outline text-white hover:bg-background hover:text-white">Sort By</button>
-          <ul className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
+          <ul className="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-52">
             <li>
               <button onClick={() => setSortBy('waiting')}>Waiting</button>
             </li>
@@ -117,7 +117,7 @@ const UserGameRooms = () => {
                 <strong>Status:</strong>
                 <span
                   className={`badge text-white border-none ${
-                    gameRoom.status === 'waiting'
+                    gameRoom.status === 'character-select'
                       ? 'bg-yellow-700'
                       : 'bg-green-900'
                   } ml-2`}

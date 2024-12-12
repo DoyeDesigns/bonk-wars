@@ -5,7 +5,6 @@ import Image from 'next/image';
 import { collection, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { GameRoomDocument } from '@/store/online-game-store';
-import useOnlineGameStore from '@/store/online-game-store';
 import { useRouter } from 'next/navigation';
 
 const GameRoomSearch = () => {
@@ -14,7 +13,6 @@ const GameRoomSearch = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const { joinGameRoom } = useOnlineGameStore();
   const router = useRouter();
 
   const handleSearch = async () => {
@@ -51,15 +49,7 @@ const GameRoomSearch = () => {
 
   const handleJoinRoom = async () => {
     if (!gameRoom) return;
-
-    try {
-      await joinGameRoom(gameRoom.id);
-      router.push(`/game-play/${gameRoom.id}`);
-      // Optionally add success notification or navigation
-    } catch (err) {
-      setError('Failed to join game room');
-      console.error(err);
-    }
+      router.push(`/create-game/?gid=${gameRoom.id}`);
   };
 
   return (
@@ -78,7 +68,7 @@ const GameRoomSearch = () => {
         <button 
           onClick={handleSearch} 
           disabled={loading}
-          className='btn h-12 bg-primary hover:bg-primary w-full active:bg-primary/80 active:text-white text-white hover:bg-primary/80 mb-4'
+          className='btn h-12 border-none bg-primary hover:bg-primary w-full active:bg-primary/80 active:text-white text-white hover:bg-primary/80 mb-4'
         >
           {loading ? (<span className="text-white">Searching...</span>) : (<span className="text-white">Search</span>)}
         </button>
@@ -112,7 +102,7 @@ const GameRoomSearch = () => {
                 <strong>Status:</strong> 
                 <span 
                   className={`badge text-white border-none ${
-                    gameRoom.status === 'waiting' 
+                    gameRoom.status === 'character-select' 
                       ? 'bg-yellow-700' 
                       : gameRoom.status === 'inProgress'
                       ? 'bg-green-900'

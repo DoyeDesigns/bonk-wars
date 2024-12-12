@@ -12,7 +12,7 @@ export default function Play() {
             <h1 className='pb-4 pt-9 font-bold text-white pl-4'>Find Game</h1>
             <GameRoomSearch />
             <div className='flex flex-col items-center gap-4'>
-                <Link href='/create-game' className='btn h-12 bg-secondary w-full text-black hover:bg-secondary'>Create Game</Link>
+                <Link href='/create-game' className='btn h-12  border-none bg-secondary w-full text-black hover:bg-secondary'>Create Game</Link>
             </div>
             <UserGameRooms />
         </div>

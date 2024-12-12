@@ -9,6 +9,7 @@ import Step3 from './features/Step3';
 import { useRouter } from "next/navigation";
 import { Character } from "@/lib/characters";
 import useOnlineGameStore from "@/store/online-game-store";
+import { useSearchParams } from "next/navigation";
 
 function CreateGameMultiStepForm() {
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -18,6 +19,9 @@ function CreateGameMultiStepForm() {
   const { createOnlineGameRoom, joinGameRoom, selectCharacters } = useOnlineGameStore();
 
   const router = useRouter()
+  const searchParam = useSearchParams();
+
+  const roomIdToJoin = searchParam.get('gid');
 
   const handleNext = () => setCurrentStep((prev) => prev + 1);
   const handleBack = () =>
@@ -25,7 +29,7 @@ function CreateGameMultiStepForm() {
 
   const handleSubmit = async () => {
     const formData = {
-      name: step1Value,
+      amount: step1Value,
       option: selectedCharacter,
     };
     console.log("Collected Data:", formData);
@@ -35,6 +39,17 @@ function CreateGameMultiStepForm() {
     selectCharacters(newRoomId, formData?.option?.id as string);
     handleNext();
   };
+
+  function joinActiveGameRoom(roomId: string) {
+    const formData = {
+      amount: step1Value,
+      option: selectedCharacter,
+    };
+
+    joinGameRoom(roomId);
+    selectCharacters(roomId, formData?.option?.id as string);
+    router.push(`/game-play/${roomId}`);
+  }
 
   return (
     <div className="pt-4 h-full overflow-auto bg-background flex flex-col items-center px-5">
@@ -74,7 +89,7 @@ function CreateGameMultiStepForm() {
       <div className="flex justify-center pb-[150px]">
         {currentStep < 2 && (
           <button
-            className="bg-primary hover:bg-primary hover:text-white btn text-white h-12 rounded-[5px] w-[349px] mt-[35px]"
+            className="bg-primary border-none hover:bg-primary hover:text-white btn text-white h-12 rounded-[5px] w-[349px] mt-[35px]"
             onClick={handleNext}
             disabled={currentStep === 1 && !step1Value}
           >
@@ -82,13 +97,23 @@ function CreateGameMultiStepForm() {
           </button>
         )}
         {currentStep === 2 && (
-          <button
-            className="bg-primary hover:bg-primary hover:text-white btn text-white h-12 rounded-[5px] w-[349px] mt-[35px]"
+          (roomIdToJoin === null ? (
+            <button
+            className="bg-primary border-none hover:bg-primary hover:text-white btn text-white h-12 rounded-[5px] w-[349px] mt-[35px]"
             onClick={handleSubmit}
             disabled={!selectedCharacter}
           >
             Next
           </button>
+          ) : (
+            <button
+              className="bg-primary border-none hover:bg-primary hover:text-white btn text-white h-12 rounded-[5px] w-[349px] mt-[35px]"
+              onClick={() => joinActiveGameRoom(roomIdToJoin)}
+              disabled={!selectedCharacter}
+            >
+              Join game
+            </button>
+          ))
         )}
         {currentStep === 3 && (
           <button
