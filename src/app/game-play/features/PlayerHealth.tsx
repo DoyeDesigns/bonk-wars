@@ -1,14 +1,9 @@
 import Image from 'next/image'
 import { GameRoomDocument } from '@/store/online-game-store';
 
-export default function PlayerHealth({ gameState, userId }: {
-  gameState?: GameRoomDocument['gameState'],
-  userId: number | null
+export default function PlayerHealth({ gameState }: {
+  gameState?: GameRoomDocument['gameState']
 }) {
-
-  // const isPlayer1 = gameState?.player1.id === userId;
-  // const isPlayer2 = gameState?.player2.id === userId;
-  // Always show the current user's information
   const currentPlayer = gameState?.player1
  
   // Calculate health percentage
@@ -39,12 +34,9 @@ export default function PlayerHealth({ gameState, userId }: {
   )
 }
 
-export function OpponentPlayerHealth({ gameState, userId }: {
-  gameState?: GameRoomDocument['gameState'],
-  userId: number | null
+export function OpponentPlayerHealth({ gameState }: {
+  gameState?: GameRoomDocument['gameState']
 }) {
-  // Always show the opponent's information
-
   const opponentPlayer = gameState?.player2
 
   // Calculate health percentage

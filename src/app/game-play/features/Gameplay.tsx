@@ -149,10 +149,10 @@ export default function Gameplay({roomId} : {roomId: string}) {
     <div className='bg-[url("/game-play-bg.png")] bg-cover bg-no-repeat h-full overflow-auto  pt-[15px] relative'>
       <div className="flex flex-col gap-5 px-5">
         <div>
-          <PlayerHealth  gameState={gameState}  userId={currentUserTelegramId}/>
+          <PlayerHealth  gameState={gameState} />
         </div>
         <div className="flex justify-end">
-          <OpponentPlayerHealth gameState={gameState}  userId={currentUserTelegramId}/>
+          <OpponentPlayerHealth gameState={gameState} />
         </div>
       </div>
       <div className="flex flex-col items-center justify-center mt-10 mb-5">

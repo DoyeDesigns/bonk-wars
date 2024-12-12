@@ -11,12 +11,10 @@ export default function PlayerAbility({ gameState, userId }: {
   const isPlayer2 = gameState?.player2.id === userId;
 
   const currentPlayer = isPlayer1 
-    ? gameState.player1 
+    ? gameState.player2 
     : isPlayer2 
-      ? gameState.player2 
+      ? gameState.player1 
       : null;
-
-    console.log('Current player ability', currentPlayer?.character)
 
     const character = CHARACTERS.find((c) => c.id === currentPlayer?.character?.id);
 
