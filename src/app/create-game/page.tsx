@@ -19,10 +19,7 @@ function CreateGameMultiStepForm() {
   const [roomId, setRoomId] = useState('');
   const { createOnlineGameRoom, joinGameRoom, selectCharacters } = useOnlineGameStore();
 
-  const router = useRouter()
-  const searchParam = useSearchParams();
-
-  const roomIdToJoin = searchParam.get('gid');
+  const router = useRouter();
 
   const handleNext = () => setCurrentStep((prev) => prev + 1);
   const handleBack = () =>
@@ -52,8 +49,30 @@ function CreateGameMultiStepForm() {
     router.push(`/game-play/${roomId}`);
   }
 
+  function FlowButton() {
+    const searchParam = useSearchParams();
+    const roomIdToJoin = searchParam.get('gid');
+   
+    if (roomIdToJoin === null)  {
+      return <button
+      className="bg-primary border-none hover:bg-primary hover:text-white btn text-white h-12 rounded-[5px] w-[349px] mt-[35px]"
+      onClick={handleSubmit}
+      disabled={!selectedCharacter}
+      >
+        Next
+      </button>
+      } else {
+        return <button
+        className="bg-primary border-none hover:bg-primary hover:text-white btn text-white h-12 rounded-[5px] w-[349px] mt-[35px]"
+        onClick={() => joinActiveGameRoom(roomIdToJoin)}
+        disabled={!selectedCharacter}
+        >
+          Join game
+        </button>
+      }
+    }
+
   return (
-    <Suspense>
     <div className="pt-4 h-full overflow-auto bg-background flex flex-col items-center px-5">
       <div>
       {currentStep === 3 ? (<></>) : (<div className="relative">
@@ -99,23 +118,9 @@ function CreateGameMultiStepForm() {
           </button>
         )}
         {currentStep === 2 && (
-          (roomIdToJoin === null ? (
-            <button
-            className="bg-primary border-none hover:bg-primary hover:text-white btn text-white h-12 rounded-[5px] w-[349px] mt-[35px]"
-            onClick={handleSubmit}
-            disabled={!selectedCharacter}
-          >
-            Next
-          </button>
-          ) : (
-            <button
-              className="bg-primary border-none hover:bg-primary hover:text-white btn text-white h-12 rounded-[5px] w-[349px] mt-[35px]"
-              onClick={() => joinActiveGameRoom(roomIdToJoin)}
-              disabled={!selectedCharacter}
-            >
-              Join game
-            </button>
-          ))
+          <Suspense>
+            <FlowButton />
+          </Suspense>
         )}
         {currentStep === 3 && (
           <button
@@ -128,7 +133,6 @@ function CreateGameMultiStepForm() {
         )}
       </div>
     </div>
-    </Suspense>
   );
 }
 
