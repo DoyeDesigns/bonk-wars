@@ -55,6 +55,18 @@ export default function Gameplay({roomId} : {roomId: string}) {
       }
   }, [currentUserTelegramId])
 
+  useEffect(() => {
+    if (gameState.winner === 'player1' || gameState.winner === 'player2' && gameState.gameStatus === 'finished') {
+      addToast(`${gameState.winner} has won the game`, 'info');
+      if (currentUserTelegramId === gameState[gameState?.winner]?.id) {
+        setShowWinner(true); 
+      } else {
+        setShowLoser(true);
+      }
+      return;
+    }
+  }, [gameState.winner, gameState.gameStatus])
+
   // Handle defense modal logic
   useEffect(() => {
     if (
@@ -67,16 +79,6 @@ export default function Gameplay({roomId} : {roomId: string}) {
       setLastAttackDetails(gameState.lastAttack);
       setShowDefenseModal(false);
       setShowSkipDefenseButton(false);
-    
-      if (gameState.winner === 'player1' || gameState.winner === 'player2') {
-        addToast(`${gameState.winner} has won the game`, 'success');
-        if (currentUserTelegramId === gameState[gameState?.winner]?.id) {
-          setShowWinner(true); 
-        } else {
-          setShowLoser(true);
-        }
-        return;
-      }
       
       const attackingPlayer = gameState.lastAttack.attackingPlayer;
       const defendingPlayer = attackingPlayer === 'player1' ? 'player2' : 'player1';
@@ -92,7 +94,7 @@ export default function Gameplay({roomId} : {roomId: string}) {
         } else {
           // Automatically skip defense if no defenses are available
           useOnlineGameStore.getState().skipDefense(defendingPlayer, gameState.lastAttack.ability.value, gameState.lastAttack.ability);
-          addToast(`You took -${gameState.lastAttack.ability.value} damage`, 'error')
+          addToast(`You took -${gameState.lastAttack.ability.value} damage`, 'info')
         }
       }
     } else {
@@ -109,7 +111,7 @@ export default function Gameplay({roomId} : {roomId: string}) {
  
     if (defenseType === null) {
       useOnlineGameStore.getState().skipDefense(defendingPlayer, incomingDamage, ability);
-      addToast(`${defendingPlayer} took -${incomingDamage} damage from ${ability.name}`, 'error');
+      addToast(`${defendingPlayer} took -${incomingDamage} damage from ${ability.name}`, 'info');
     } else {
       const defenseAbility: Ability = {
         id: `${defendingPlayer}-${defenseType}`,
@@ -129,13 +131,13 @@ export default function Gameplay({roomId} : {roomId: string}) {
       if (wasDefenseSuccessful) {
         switch (defenseType) {
           case 'dodge':
-            addToast(`${defendingPlayer} dodged the attack`, 'success');
+            addToast(`${defendingPlayer} dodged the attack`, 'info');
             break;
           case 'block':
-            addToast(`${defendingPlayer} blocked the attack`, 'success');
+            addToast(`${defendingPlayer} blocked the attack`, 'info');
             break;
           case 'reflect':
-            addToast(`${defendingPlayer} reflected the attack`, 'success');
+            addToast(`${defendingPlayer} reflected the attack`, 'info');
             break;
         }
       }
@@ -159,8 +161,10 @@ export default function Gameplay({roomId} : {roomId: string}) {
         <span className="text-[22px] font-bold text-white my-2 text-center">
           {gameState.currentTurn === 'player1' ? 'Player 1 turn' : 'Player 2 turn'}
         </span>
-        {/* <Image src="/dice-bg.png" alt="dice-bg" width={164} height={164} /> */}
         <div className='bg-[url("/dice-bg.png")] bg-cover flex flex-col justify-center items-center h-[164px] w-[164px] gap-3'>
+        <div className='bg-[url("/green-grass-texture.png")] bg-contain bg-no-repeat bg-center flex justify-center items-center h-[123px] w-[123px]'>
+          {/* <Image src='/dice-animation.gif.mp4' alt='dice' width={100} height={100} /> */}
+        </div>
         </div>
         <div className='space-y-3 flex flex-col justify-center items-center mt-2'>
           <DiceRoll />

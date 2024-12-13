@@ -9,7 +9,7 @@ import {
   where,
   getDocs,
   getDoc,
-  writeBatch,
+  updateDoc,
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { CHARACTERS, Character, Ability } from '@/lib/characters';
@@ -94,11 +94,6 @@ interface OnlineGameStore {
     incomingDamage: number
   ) => Promise<boolean>;
   addDefenseToInventory: (player: 'player1' | 'player2', defenseType: string) => void;
-  takeDamage: (
-    defendingPlayer: 'player1' | 'player2', 
-    incomingDamage: number, 
-    ability: Ability
-  ) => void;
   skipDefense: (
     defendingPlayer: 'player1' | 'player2', 
     incomingDamage: number, 
@@ -149,21 +144,12 @@ const useOnlineGameStore = create<OnlineGameStore>((set, get) => ({
     }
   
     const diceRoll = Math.floor(Math.random() * 6) + 1;
-    const batch = writeBatch(db);
     const roomRef = doc(db, 'gameRooms', roomId);
   
-    batch.update(roomRef, {
+    updateDoc(roomRef, {
       [`players.${playerTelegramId}.diceRoll`]: diceRoll,
       [`gameState.diceRolls.${playerTelegramId}`]: diceRoll
     });
-  
-    try {
-      await batch.commit();
-      console.log('Dice roll recorded successfully');
-    } catch (error) {
-      console.error('Failed to record dice roll:', error);
-      throw error;
-    }
   
     return diceRoll;
   },
@@ -210,22 +196,12 @@ checkDiceRollsAndSetTurn: async () => {
       ? 'player1'
       : 'player2';
 
-  const batch = writeBatch(db);
-
   // Prepare updates for Firestore
-  batch.update(roomRef, {
+  updateDoc(roomRef, {
     'gameState.currentTurn': firstPlayer,
     'gameState.gameStatus': 'inProgress',
     'status': 'inProgress',
   });
-
-  try {
-    // Perform a single Firestore batch update
-    await batch.commit();
-    console.log('Game state updated successfully.');
-  } catch (error) {
-    console.error('Failed to update game state:', error);
-  }
 },
 
 
@@ -251,22 +227,14 @@ checkDiceRollsAndSetTurn: async () => {
       throw new Error('Character already selected');
     }
   
-    const batch = writeBatch(db);
-
-  batch.update(roomRef, {
+  updateDoc(roomRef, {
     [`players.${telegramUser.id}.characterId`]: characterId,
     [`gameState.${isPlayer1 ? 'player1' : 'player2'}.character`]: playerCharacter,
     [`gameState.${isPlayer1 ? 'player1' : 'player2'}.currentHealth`]: playerCharacter.baseHealth,
     [`gameState.${isPlayer1 ? 'player1' : 'player2'}.id`]: telegramUser.id,
     [`gameState.gameStatus`]: 'character-select',
+    'status': 'character-select'
   });
-
-  try {
-    await batch.commit();
-  } catch (error) {
-    console.error('Failed to select character:', error);
-    throw new Error('Failed to update the game room. Please try again.');
-  }
   },
 
 
@@ -279,71 +247,20 @@ checkDiceRollsAndSetTurn: async () => {
     const roomRef = doc(db, 'gameRooms', roomId);
     const nextPlayer = player === 'player1' ? 'player2' : 'player1';
   
-    // Initialize Firestore batch
-    const batch = writeBatch(db);
-  
-    // Prepare updates for the batch
     const currentDefenseCount = gameState[player]?.defenseInventory?.[defenseType] || 0;
   
-    batch.update(roomRef, {
+    updateDoc(roomRef, {
       [`gameState.${player}.defenseInventory.${defenseType}`]: currentDefenseCount + 1,
       'gameState.currentTurn': nextPlayer,
     });
-  
-    try {
-      // Commit the batch
-      await batch.commit();
-      console.log(`Successfully added ${defenseType} to ${player}'s inventory.`);
-    } catch (error) {
-      console.error('Error adding defense to inventory:', error);
-      throw new Error('Failed to add defense to inventory. Please try again.');
-    }
   },
 
-  takeDamage: async (defendingPlayer, incomingDamage, ability) => {
-    const { roomId, gameState } = get();
-    if (!roomId) throw new Error('No active game room');
-  
-    const roomRef = doc(db, 'gameRooms', roomId);
-    const batch = writeBatch(db);
-  
-    const opponentPlayer = defendingPlayer === 'player1' ? 'player2' : 'player1'; 
-    
-    const updatedHealth = gameState[defendingPlayer].currentHealth - incomingDamage;
-  
-    const updateData: UpdateData = {
-      [`gameState.${defendingPlayer}.currentHealth`]: updatedHealth,
-      [`gameState.${defendingPlayer}.skippedDefense`]: {
-        ability,
-        damage: incomingDamage
-      },
-      'gameState.lastAttack': { ability: null, attackingPlayer: null },
-      'gameState.currentTurn': opponentPlayer,
-    };
-  
-    // Check if game is over
-    if (updatedHealth <= 0) {
-      updateData['gameState.gameStatus'] = 'finished';
-      updateData['status'] = 'finished';
-      updateData['gameState.winner'] = opponentPlayer;
-    }
-  
-    try {
-      batch.update(roomRef, updateData);
-      await batch.commit();
-      console.log(`Defending player: ${defendingPlayer} successfully took damage`);
-    } catch (error) {
-      console.error('Failed to take damage:', error);
-      throw new Error('Failed to process defense action. Please try again later.');
-    }
-  },
   
   skipDefense: async (defendingPlayer, incomingDamage, ability) => {
     const { roomId, gameState } = get();
     if (!roomId) throw new Error('No active game room');
   
     const roomRef = doc(db, 'gameRooms', roomId);
-    const batch = writeBatch(db);
   
     const opponentPlayer = defendingPlayer === 'player1' ? 'player2' : 'player1'; 
     
@@ -366,14 +283,7 @@ checkDiceRollsAndSetTurn: async () => {
       updateData['gameState.winner'] = opponentPlayer;
     }
   
-    try {
-      batch.update(roomRef, updateData);
-      await batch.commit();
-      console.log(`Defending player: ${defendingPlayer} successfully took damage`);
-    } catch (error) {
-      console.error('Failed to take damage:', error);
-      throw new Error('Failed to process defense action. Please try again later.');
-    }
+      updateDoc(roomRef, updateData);
   },
   
   useDefense: async (defendingPlayer, defenseAbility, incomingDamage) => {
@@ -435,16 +345,8 @@ checkDiceRollsAndSetTurn: async () => {
          defenseType === 'dodge' ? 0 : incomingDamage) <= 0) {
       updateData['gameStatus'] = 'finished';
     }
- 
-    try {
-      const batch = writeBatch(db);
-      batch.update(roomRef, updateData);
-      await batch.commit();
+      updateDoc(roomRef, updateData);
       return true;
-    } catch (error) {
-      console.error('Error using defense:', error);
-      throw error;
-    }
   },
   
   performAttack: async (attackingPlayer, ability) => {
@@ -454,24 +356,15 @@ checkDiceRollsAndSetTurn: async () => {
     const opponentKey = attackingPlayer === 'player1' ? 'player2' : 'player1';
     const roomRef = doc(db, 'gameRooms', roomId);
   
-    const batch = writeBatch(db);
   
     // Prepare the batch update for Firestore
-    batch.update(roomRef, {
+    updateDoc(roomRef, {
       'gameState.currentTurn': opponentKey,
       'gameState.lastAttack': { 
         ability, 
         attackingPlayer 
       }
     });
-  
-    try {
-      // Update backend with batch write
-      await batch.commit();
-    } catch (error) {
-      console.error('Error performing attack:', error);
-      throw error;
-    }
   },
 
   createOnlineGameRoom: async () => {
@@ -514,10 +407,9 @@ checkDiceRollsAndSetTurn: async () => {
       throw new Error('Telegram user not found');
     }
 
-    const batch = writeBatch(db);
     const roomRef = doc(db, 'gameRooms', roomId);
    
-    batch.update(roomRef, {
+    updateDoc(roomRef, {
       [`players.${telegramUser.id}`]: {
         telegramId: telegramUser.id,
         username: telegramUser.username,
@@ -526,14 +418,6 @@ checkDiceRollsAndSetTurn: async () => {
       },
       status: 'character-select'
     });
-
-    try {
-      await batch.commit();
-      console.log('Successfully joined game room');
-    } catch (error) {
-      console.error('Failed to join game room:', error);
-      throw error;
-    }
 
     set({
       roomId,
@@ -606,17 +490,13 @@ checkDiceRollsAndSetTurn: async () => {
           player1: {
             ...state.gameState.player1,
             ...roomData?.gameState?.player1,
-            character: CHARACTERS.find(
-              (c) => c.id === roomData?.gameState.player1.characterId
-            ) || state.gameState.player1.character,
+            character: roomData?.gameState?.player1.character,
           },
           player2: {
             ...state.gameState.player2,
             ...roomData?.gameState.player2,
             id: roomData?.gameState.player2.id || state.gameState.player2.id,
-            character: CHARACTERS.find(
-              (c) => c.id === roomData?.gameState.player2.characterId
-            ) || state.gameState.player2.character,
+            character: roomData?.gameState?.player2.character,
           },
           currentTurn: roomData?.gameState.currentTurn,
           gameStatus: roomData?.gameState.gameStatus,

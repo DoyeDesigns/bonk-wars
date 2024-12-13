@@ -12,7 +12,7 @@ export default function PlayerHealth({ gameState }: {
     : 0;
 
   return (
-    <div className='bg-[#E1C17B] h-10 w-[250px] rounded-2xl flex gap-3 px-2 items-center '>
+    <div className='bg-[#E1C17B] bg-[url("/health-bg.png")] bg-cover h-10 w-[250px] rounded-3xl flex gap-3 px-2 items-center '>
       <Image
         src={`/${currentPlayer?.character?.id}.png`}
         alt={currentPlayer?.character?.name || 'Player Character'}
@@ -45,7 +45,7 @@ export function OpponentPlayerHealth({ gameState }: {
     : 0;
 
   return (
-    <div className='bg-[#E1C17B] h-10 w-[250px] rounded-2xl flex flex-row-reverse gap-3 px-2 items-center '>
+    <div className='bg-[#E1C17B] bg-[url("/health-bg.png")] bg-cover h-10 w-[250px] rounded-3xl flex flex-row-reverse gap-3 px-2 items-center '>
       <Image
         src={`/${opponentPlayer?.character?.id}.png`}
         alt={opponentPlayer?.character?.name || 'Opponent Character'}
