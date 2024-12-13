@@ -33,7 +33,6 @@ function CreateGameMultiStepForm() {
     console.log("Collected Data:", formData);
     const newRoomId = await createOnlineGameRoom();
     setRoomId(newRoomId);
-    joinGameRoom(newRoomId);
     selectCharacters(newRoomId, formData?.option?.id as string);
     handleNext();
   };
