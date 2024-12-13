@@ -4,9 +4,11 @@ import React from "react";
 import Image from "next/image";
 import { useState } from "react";
 import ExitGame from "./ExitGame";
+import { useRouter } from "next/navigation";
 
 export default function WonMessage() {
   const [showExitOptions, setShowExitOptions] = useState(false);
+  const router = useRouter();
 
   const handleExitOptions = () => {
     setShowExitOptions((prev) => !prev);
@@ -32,7 +34,7 @@ export default function WonMessage() {
             </button>
           </div> */}
           <div className='flex justify-end w-[60%] -mt-20'>
-          <button><Image src='/close-overlay.png' alt='close-overlay' width={36} height={36} /></button>
+          {/* <button><Image src='/close-overlay.png' alt='close-overlay' width={36} height={36} /></button> */}
         </div>
           <Image
             src="/winner-background.png"
@@ -58,7 +60,7 @@ export default function WonMessage() {
               />{" "}
               Tell your friends
             </button>
-            <button className="btn border-none bg-white text-primary font-bold text-[12px] w-[190px] rounded-[10px]">
+            <button onClick={() => router.push('/create-game')} className="btn border-none bg-white text-primary font-bold text-[12px] w-[190px] rounded-[10px]">
               <Image
                 src="/rematch.png"
                 alt="winner-bg"

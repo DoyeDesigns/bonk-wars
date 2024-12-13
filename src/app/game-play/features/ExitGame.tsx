@@ -1,5 +1,6 @@
 import React from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 interface ExitGameProps {
     showExitOptions: boolean;
@@ -7,6 +8,7 @@ interface ExitGameProps {
   }
 
 export default function ExitGame({showExitOptions, setShowExitOptions}: ExitGameProps) {
+  const router = useRouter();
     const handleClose = () => {
         setShowExitOptions(!showExitOptions); // Update the state from this component
       };
@@ -17,10 +19,10 @@ export default function ExitGame({showExitOptions, setShowExitOptions}: ExitGame
           <span className="text-white font-extrabold text-[22px] text-center w-[200px]">
             Are you sure you want to exit?
           </span>
-          <span className="font-medium text-white inline-flex gap-2 mt-3 mb-4">
+          {/* <span className="font-medium text-white inline-flex gap-2 mt-3 mb-4">
             <Image src="/info.png" alt="info" width={24} height={24} />
             Player 2 wins by default
-          </span>
+          </span> */}
           <button onClick={() => handleClose()} className="btn font-bold text-primary bg-white border-none w-[195px] rounded-[5px]">
             <Image
               src="/arrow-back-orange.png"
@@ -32,7 +34,7 @@ export default function ExitGame({showExitOptions, setShowExitOptions}: ExitGame
           </button>
         </div>
       </div>
-      <button className="underline font-bold text-[18px] text-white">
+      <button onClick={() => router.push('/play')} className="underline font-bold text-[18px] text-white">
         Exit anyway
       </button>
     </div>
