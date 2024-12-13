@@ -1,6 +1,5 @@
 import React from 'react'
 import { GameRoomDocument } from '@/store/online-game-store';
-import { CHARACTERS } from '@/lib/characters';
 
 export default function PlayerAbility({ gameState, userId }: {
   gameState?: GameRoomDocument['gameState'],
