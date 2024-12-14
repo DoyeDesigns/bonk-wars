@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+![Cover](https://github.com/user-attachments/assets/9cb81492-c23b-4bd7-81a0-8b1d1ebde879)
 
-## Getting Started
 
-First, run the development server:
+BONKWARS is a PvP Telegram game where players engage in thrilling battles to win BONK tokens, showcasing the fun and accessibility of Web3 gaming. It is designed to provide a seamless social and competitive experience, all within the Telegram app.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## How to Play BONKWARS
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Start the Game: Add the BONKWARS Telegram bot to your chat and follow the prompts to set up your profile.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Challenge an Opponent: Use the bot commands to challenge another player to a PvP battle.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Select Your Strategy: Choose your moves and power-ups in real time to outsmart your opponent.
 
-## Learn More
+- Earn Rewards: Win battles to earn BONK tokens and climb the leaderboard.
 
-To learn more about Next.js, take a look at the following resources:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Key Features
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Telegram Integration: Play directly within Telegram for a smooth and accessible experience.
 
-## Deploy on Vercel
+- PvP Battles: Engage in one-on-one matches with friends or random opponents.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Leaderboards: Compete for top ranks and showcase your skills to the community.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Earn BONK Tokens: Win rewards for every victory and become a BONK champion.
+
+- Social Gameplay: Challenge friends, taunt rivals, and build a competitive spirit within the Telegram ecosystem.
+
+## Why Choose BONKWARS?
+
+- Easy Accessibility: No additional apps needed—play directly on Telegram.
+
+- Fun and Competitive: Experience fast-paced, engaging gameplay in a social setting.
+
+- Earn While Playing: Gain real rewards in the form of BONK tokens.
+
+- Community-Centric: Designed to foster social interactions and grow the Web3 gaming community.
+
+## Vision
+
+BONKWARS aims to bridge the gap between traditional gaming and Web3 by providing a fun, interactive, and rewarding experience within a widely-used platform like Telegram. By integrating BONK tokens and fostering a competitive environment, BONKWARS showcases the potential of decentralized gaming.
+
+Thank you for joining BONKWARS! Get ready to challenge, compete, and conquer. Let the battles begin!
+
